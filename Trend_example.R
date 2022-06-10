@@ -54,7 +54,7 @@ tabla_ind <- data.frame(
   "F" = numeric()
 )
 
-for (n in 1:10) {
+for (n in 1:length(spp)) {
   ind <- filter(Data, Especie == spp[n])
   
   if (nrow(ind) > 10) {
