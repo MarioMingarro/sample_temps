@@ -16,6 +16,8 @@ tabla_final <- data.frame(
   "F" = numeric()
 )
 
+hist(Data$Lat)
+
 for (i in 1:5) {
   tabla <- data.frame(
     "Variable" = NA,
@@ -27,13 +29,13 @@ for (i in 1:5) {
     "F" = NA
   )
   tabla$Variable <- y[i]
-  model <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
-  tabla$Trend <- model$coefficients[[2]]
-  tabla$t <- summary(model)$coefficients[2, 3]
-  tabla$p <- summary(model)$coefficients[2, 4]
-  tabla$X95_max <-  confint(model, "Año", level = .95)[, 2]
-  tabla$X95_min <-  confint(model, "Año", level = .95)[, 1]
-  tabla$F <- summary(model)$fstatistic[1]
+  model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
+  tabla$Trend <- model_g$coefficients[[2]]
+  tabla$t <- summary(model_g)$coefficients[2, 3]
+  tabla$p <- summary(model_g)$coefficients[2, 4]
+  tabla$X95_max <-  confint(model_g, "Año", level = .95)[, 2]
+  tabla$X95_min <-  confint(model_g, "Año", level = .95)[, 1]
+  tabla$F <- summary(model_g)$fstatistic[1]
   tabla_final <- rbind(tabla_final, tabla)
 }
 
@@ -41,7 +43,9 @@ for (i in 1:5) {
 
 spp <- unique(Data$Especie)
 
-ind <- filter(Data, Especie == spp[n])
+compare.coeff <- function(b_g,se_g,b_i,se_i){
+  return((b_g-b_i)/sqrt(se_g^2+se_i^2))
+}
 
 tabla_ind <- data.frame(
   "Spp" = character(),
@@ -51,7 +55,8 @@ tabla_ind <- data.frame(
   "p" = numeric(),
   "95_max" = numeric(),
   "95_min" = numeric(),
-  "F" = numeric()
+  "F" = numeric(),
+  "Dif" = numeric()
 )
 
 for (n in 1:length(spp)) {
@@ -68,22 +73,39 @@ for (n in 1:length(spp)) {
           "p" = NA,
           "95_max" = NA,
           "95_min" = NA,
-          "F" = NA
+          "F" = NA,
+          "Dif" = NA
         )
+        #General
+        model_g = lm(formula(paste(y[i], paste(
+          x, collapse = "+"
+        ), sep = " ~ ")), data = Data)
+        
         tabla$Spp <- ind[1, 1]
         tabla$Variable <- y[i]
-        model <-
+        model_i <-
           lm(formula(paste(y[i], paste(
             x, collapse = "+"
           ), sep = " ~ ")), data = ind)
-        tabla$Trend <- model$coefficients[[2]]
-        tabla$t <- summary(model)$coefficients[2, 3]
-        tabla$p <- summary(model)$coefficients[2, 4]
-        tabla$X95_max <-  confint(model, "Año", level = .95)[, 2]
-        tabla$X95_min <-  confint(model, "Año", level = .95)[, 1]
-        tabla$F <- summary(model)$fstatistic[1]
-        tabla_ind <-
-          rbind(tabla_ind, tabla)
+        tabla$Trend <- model_i$coefficients[[2]]
+        tabla$t <- summary(model_i)$coefficients[2, 3]
+        tabla$p <- summary(model_i)$coefficients[2, 4]
+        tabla$X95_max <-  confint(model_i, "Año", level = .95)[, 2]
+        tabla$X95_min <-  confint(model_i, "Año", level = .95)[, 1]
+        tabla$F <- summary(model_i)$fstatistic[1]
+        
+        
+        
+        b_g <- summary(model_g)$coefficients[2,1]
+        se_g <- summary(model_g)$coefficients[2,2]
+        b_i <- summary(model_i)$coefficients[2,1]
+        se_i <- summary(model_i)$coefficients[2,2]
+        
+        
+        tabla$Dif <- 2*pnorm(-abs(compare.coeff(b_g,se_g,b_i,se_i)))
+        
+        tabla_ind <- rbind(tabla_ind, tabla)
+        
       }, error = function(e) {
         cat(
           paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"),
@@ -96,3 +118,27 @@ for (n in 1:length(spp)) {
     print(paste0("Data for ", ind[1, 1], " specie are insufficient"))
   }
 }
+
+############################################
+
+
+model_g = lm(Lat ~ Año, data = Data)
+model_i = lm(Lat ~ Año, data = subset(Data,Data$Especie == "Volinus sticticus"))
+
+b_g <- summary(model_g)$coefficients[2,1]
+se_g <- summary(model_g)$coefficients[2,2]
+b_i <- summary(model_i)$coefficients[2,1]
+se_i <- summary(model_i)$coefficients[2,2]
+
+p_value = 2*pnorm(-abs(compare.coeff(b_g,se_g,b_i,se_i)))
+p_value #inf 0.05
+
+############################################
+spp[45]
+
+ggplot() + 
+  geom_point(data= Data, aes(x = Año, y = Altitud),col = "black", alpha = .2)  +
+  geom_smooth(data= Data, aes(x = Año, y = Altitud),col = "black", fill = "black", method = "lm") +
+  geom_point(data= ind, aes(x = Año, y = Altitud), col = "red", alpha = .2) + 
+  geom_smooth(data= ind, aes(x = Año, y = Altitud),col = "red", fill = "red", method = "lm")+
+  ggtitle(paste0(spp[45]))
