@@ -11,12 +11,12 @@ tabla_final <- data.frame(
   "Trend" = numeric(),
   "t" = numeric(),
   "p" = numeric(),
-  "95_max" = numeric(),
-  "95_min" = numeric(),
+  "P95_max" = numeric(),
+  "P95_min" = numeric(),
   "F" = numeric()
 )
 
-hist(Data$Lat)
+
 
 for (i in 1:5) {
   tabla <- data.frame(
@@ -81,7 +81,7 @@ for (n in 1:length(spp)) {
           x, collapse = "+"
         ), sep = " ~ ")), data = Data)
         
-        tabla$Spp <- ind[1, 1]
+        tabla$Spp <- unique(ind[[1]])
         tabla$Variable <- y[i]
         model_i <-
           lm(formula(paste(y[i], paste(
@@ -137,8 +137,8 @@ p_value #inf 0.05
 spp[45]
 
 ggplot() + 
-  geom_point(data= Data, aes(x = Año, y = Altitud),col = "black", alpha = .2)  +
   geom_smooth(data= Data, aes(x = Año, y = Altitud),col = "black", fill = "black", method = "lm") +
-  geom_point(data= ind, aes(x = Año, y = Altitud), col = "red", alpha = .2) + 
   geom_smooth(data= ind, aes(x = Año, y = Altitud),col = "red", fill = "red", method = "lm")+
-  ggtitle(paste0(spp[45]))
+  ggtitle(paste0(spp[1]))+
+  labs(x= "Year", y = "Elevation")+
+  theme_minimal()
