@@ -50,19 +50,24 @@ for (i in 1:5) {
   tabla$Trend <- model_g$coefficients[[2]]
   tabla$t <- summary(model_g)$coefficients[2, 3]
   tabla$p <- summary(model_g)$coefficients[2, 4]
-  tabla$X95_max <-  confint(model_g, "Año", level = .95)[, 2]
-  tabla$X95_min <-  confint(model_g, "Año", level = .95)[, 1]
+  tabla$P95_max <-  confint(model_g, "Año", level = .95)[, 2]
+  tabla$P95_min <-  confint(model_g, "Año", level = .95)[, 1]
   tabla$F <- summary(model_g)$fstatistic[1]
   tabla_final <- rbind(tabla_final, tabla)
 }
 ```
 ```{r}
-DT::datatable(tabla_final,
-              class = "nowrap",
-              options = list(autoWidth = TRUE,
-                             columnDefs = list(list(
-                               width = "50%",
-                               targets = 0))))
+DT::datatable(
+  tabla_final,
+  class = "nowrap",
+  filter = 'top',
+  extensions = "Buttons",
+  options = list(
+    autoWidth = TRUE,
+    dom = 'Bfrtip',
+    buttons = c("copy", "csv", "excel")
+  )
+)
 ```
 # Indivudual species
 
@@ -116,8 +121,8 @@ for (n in 1:length(spp)) {
         tabla$Trend <- model_i$coefficients[[2]]
         tabla$t <- summary(model_i)$coefficients[2, 3]
         tabla$p <- summary(model_i)$coefficients[2, 4]
-        tabla$X95_max <-  confint(model_i, "Año", level = .95)[, 2]
-        tabla$X95_min <-  confint(model_i, "Año", level = .95)[, 1]
+        tabla$P95_max <-  confint(model_i, "Año", level = .95)[, 2]
+        tabla$P95_min <-  confint(model_i, "Año", level = .95)[, 1]
         tabla$F <- summary(model_i)$fstatistic[1]
         
         
@@ -148,15 +153,21 @@ for (n in 1:length(spp)) {
 # Variables
 # Latitude
 ## Table
+
 ```{r}
 tabla_ind_lat <- filter(tabla_ind, Variable == "Lat")
 DT::datatable(tabla_ind_lat,
               class = "nowrap",
-              options = list(autoWidth = TRUE,
-                             columnDefs = list(list(
-                               width = "50%",
-                               targets = 0))))
+              filter = 'top',
+  extensions = "Buttons",
+  options = list(
+    autoWidth = TRUE,
+    dom = 'Bfrtip',
+    buttons = c("copy", "csv", "excel")
+  )
+)
 ```
+
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
 for ( i in 1:length(spp)){
@@ -173,17 +184,25 @@ for ( i in 1:length(spp)){
   }
 }
 ```
+
 # Longitude
+
 ## Table
+
 ```{r}
 tabla_ind_lon <- filter(tabla_ind, Variable == "Long")
 DT::datatable(tabla_ind_lon,
               class = "nowrap",
-              options = list(autoWidth = TRUE,
-                             columnDefs = list(list(
-                               width = "50%",
-                               targets = 0))))
+              filter = 'top',
+  extensions = "Buttons",
+  options = list(
+    autoWidth = TRUE,
+    dom = 'Bfrtip',
+    buttons = c("copy", "csv", "excel")
+  )
+)
 ```
+
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
 for ( i in 1:length(spp)){
@@ -200,84 +219,106 @@ for ( i in 1:length(spp)){
   }
 }
 ```
+
 # Elevation
+
 ## Table
 ```{r}
 tabla_ind_elev <- filter(tabla_ind, Variable == "Altitud")
 DT::datatable(tabla_ind_elev,
               class = "nowrap",
-              options = list(autoWidth = TRUE,
-                             columnDefs = list(list(
-                               width = "50%",
-                               targets = 0))))
+              filter = 'top',
+  extensions = "Buttons",
+  options = list(
+    autoWidth = TRUE,
+    dom = 'Bfrtip',
+    buttons = c("copy", "csv", "excel")
+  )
+)
 ```
+
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
 for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 10) {
-  print(ggplot() + 
-  geom_smooth(data= Data, aes(x = Año, y = Altitud),col = "black", fill = "black", method = "lm") +
-  geom_smooth(data= ind, aes(x = Año, y = Altitud),col = "red", fill = "red", method = "lm")+
-  ggtitle(paste0(spp[i]))+
-  labs(x= "Year", y = "Elevation")+
-  theme_minimal())
+    print(ggplot() + 
+            geom_smooth(data= Data, aes(x = Año, y = Altitud),col = "black", fill = "black", method = "lm") +
+            geom_smooth(data= ind, aes(x = Año, y = Altitud),col = "red", fill = "red", method = "lm")+
+            ggtitle(paste0(spp[i]))+
+            labs(x= "Year", y = "Elevation")+
+            theme_minimal())
   }else{
-  print(paste0("Data for ", ind[1, 1], " specie are insufficient")) 
+    print(paste0("Data for ", ind[1, 1], " specie are insufficient")) 
   }
 }
 ```
+
 # Maximum temperature
+
 ## Table
 ```{r}
 tabla_ind_tmax <- filter(tabla_ind, Variable == "TMAX")
 DT::datatable(tabla_ind_tmax,
               class = "nowrap",
-              options = list(autoWidth = TRUE,
-                             columnDefs = list(list(
-                               width = "50%",
-                               targets = 0))))
+              filter = 'top',
+  extensions = "Buttons",
+  options = list(
+    autoWidth = TRUE,
+    dom = 'Bfrtip',
+    buttons = c("copy", "csv", "excel")
+  )
+)
 ```
+
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
 for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 10) {
-  print(ggplot() + 
-  geom_smooth(data= Data, aes(x = Año, y = TMAX),col = "black", fill = "black", method = "lm") +
-  geom_smooth(data= ind, aes(x = Año, y = TMAX),col = "red", fill = "red", method = "lm")+
-  ggtitle(paste0(spp[i]))+
-  labs(x= "Year", y = "Maximum temperature")+
-  theme_minimal())
+    print(ggplot() + 
+            geom_smooth(data= Data, aes(x = Año, y = TMAX),col = "black", fill = "black", method = "lm") +
+            geom_smooth(data= ind, aes(x = Año, y = TMAX),col = "red", fill = "red", method = "lm")+
+            ggtitle(paste0(spp[i]))+
+            labs(x= "Year", y = "Maximum temperature")+
+            theme_minimal())
   }else{
-  print(paste0("Data for ", ind[1, 1], " specie are insufficient")) 
+    print(paste0("Data for ", ind[1, 1], " specie are insufficient")) 
   }
 }
 ```
+
 # Minimum temperature
+
 ## Table
 ```{r}
 tabla_ind_tmin <- filter(tabla_ind, Variable == "TMIN")
 DT::datatable(tabla_ind_lat,
               class = "nowrap",
-              options = list(autoWidth = TRUE,
-                             columnDefs = list(list(
-                               width = "50%",
-                               targets = 0))))
+              filter = 'top',
+  extensions = "Buttons",
+  options = list(
+    autoWidth = TRUE,
+    dom = 'Bfrtip',
+    buttons = c("copy", "csv", "excel")
+  )
+)
 ```
+
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
 for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 10) {
-  print(ggplot() + 
-  geom_smooth(data= Data, aes(x = Año, y = TMIN),col = "black", fill = "black", method = "lm") +
-  geom_smooth(data= ind, aes(x = Año, y = TMIN),col = "red", fill = "red", method = "lm")+
-  ggtitle(paste0(spp[i]))+
-  labs(x= "Year", y = "Minimum temperature")+
-  theme_minimal())
+    print(ggplot() + 
+            geom_smooth(data= Data, aes(x = Año, y = TMIN),col = "black", fill = "black", method = "lm") +
+            geom_smooth(data= ind, aes(x = Año, y = TMIN),col = "red", fill = "red", method = "lm")+
+            ggtitle(paste0(spp[i]))+
+            labs(x= "Year", y = "Minimum temperature")+
+            theme_minimal())
   }else{
-  print(paste0("Data for ", ind[1, 1], " specie are insufficient")) 
+    print(paste0("Data for ", ind[1, 1], " specie are insufficient")) 
   }
 }
 ```
+
