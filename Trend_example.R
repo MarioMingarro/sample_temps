@@ -2,8 +2,8 @@ library(readxl)
 library(tidyverse)
 Data <- read_excel("Data.xlsx")
 
-x <- "Año"
-y <- c("Lat", "Long", "Altitud", "TMAX", "TMIN")
+x <- "Año_Mes"
+y <- c("Lat", "Long", "ELEVATION", "TMAX", "TMIN")
 # All species -----
 # Latitude	Longitude	Elevation	Tªmax	Tªmin
 tabla_final <- data.frame(
@@ -15,8 +15,6 @@ tabla_final <- data.frame(
   "P95_min" = numeric(),
   "F" = numeric()
 )
-
-
 
 for (i in 1:5) {
   tabla <- data.frame(
