@@ -140,3 +140,25 @@ ggplot() +
   ggtitle(paste0(spp[1]))+
   labs(x= "Year", y = "Elevation")+
   theme_minimal()
+
+
+###############################
+
+
+
+g <- Data %>% select(Lat, Año_Mes) %>%
+  mutate(df = "g")
+
+i <-  Data %>%
+  subset(Data$Especie == "Platytomus tibialis") %>%
+  select(Lat, Año_Mes) %>%
+  mutate(df = "i")
+
+dat <- rbind(g,i)
+
+ggplot(dat,aes(x=Año_Mes,y=Lat,col=df)) + 
+  geom_point() + 
+  geom_smooth(method="lm")
+
+summary(lm(Lat~Año_Mes*df,data=dat))
+
