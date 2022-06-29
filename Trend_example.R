@@ -1,11 +1,16 @@
 library(readxl)
 library(tidyverse)
-Data <- read_excel("Data.xlsx")
 
-x <- "Año_Mes"
-y <- c("Lat", "Long", "ELEVATION", "TMAX", "TMIN")
+Data <- read_excel("Data.xlsx") # Cargamos datos
+
+x <- "Año_Mes" # Variable dependiente
+y <- c("Lat", "Long", "ELEVATION", "TMAX", "TMIN") # Variables independiente
+
+# Generamos la tabla con las tendencias y otras medidas de las tendencias para el set global de datos
+
 # All species -----
-# Latitude	Longitude	Elevation	Tªmax	Tªmin
+
+# Crear tabla vaci apara almecenar los resultados
 tabla_final <- data.frame(
   "Variable"= character(),
   "Trend" = numeric(),
@@ -16,14 +21,15 @@ tabla_final <- data.frame(
   "F" = numeric()
 )
 
-for (i in 1:5) {
+# bucle para calcular las estadisticas de todas las variables independientes
+for (i in 1:length(y)) {
   tabla <- data.frame(
     "Variable" = NA,
     "Trend" = NA,
     "t" = NA,
     "p" = NA,
-    "95_max" = NA,
-    "95_min" = NA,
+    "P95_max" = NA,
+    "P95_min" = NA,
     "F" = NA
   )
   tabla$Variable <- y[i]
@@ -31,20 +37,25 @@ for (i in 1:5) {
   tabla$Trend <- model_g$coefficients[[2]]
   tabla$t <- summary(model_g)$coefficients[2, 3]
   tabla$p <- summary(model_g)$coefficients[2, 4]
-  tabla$X95_max <-  confint(model_g, "Año", level = .95)[, 2]
-  tabla$X95_min <-  confint(model_g, "Año", level = .95)[, 1]
+  tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2]
+  tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1]
   tabla$F <- summary(model_g)$fstatistic[1]
   tabla_final <- rbind(tabla_final, tabla)
 }
 
-# Indivudual species
+# Generamos la tabla con las tendencias y otras medidas de las tendencias para cada una de las especies
+# Además comparamos la tendencia de cada una de las especies con la tendencia del conjunto de datos
 
-spp <- unique(Data$Especie)
+# Indivudual species ----
 
+spp <- unique(Data$Especie) # Creamos un vector con los nombres de las especies
+
+# Creamos una función para comparar las tendencias
 compare.coeff <- function(b_g,se_g,b_i,se_i){
   return((b_g-b_i)/sqrt(se_g^2+se_i^2))
 }
 
+# Tabla vacía para guardar los resultados 
 tabla_ind <- data.frame(
   "Spp" = character(),
   "Variable"= character(),
@@ -57,10 +68,12 @@ tabla_ind <- data.frame(
   "Dif" = numeric()
 )
 
-for (n in 1:length(spp)) {
-  ind <- filter(Data, Especie == spp[n])
+# Bucle para calcular las tendencias de cada una de las especies
+
+for (n in 1:length(spp)) {                             # Bucle para actuar sobre cada una de las especies
+  ind <- filter(Data, Especie == spp[n])              # Filtra la especie 
   
-  if (nrow(ind) > 10) {
+  if (nrow(ind) > 10) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
     for (i in 1:5) {
       tryCatch({
         tabla <- data.frame(
