@@ -10,8 +10,8 @@ y <- c("Lat", "Long", "ELEVATION", "TMAX", "TMIN") # Variables independiente
 
 # All species -----
 
-# Crear tabla vaci apara almecenar los resultados
-tabla_final <- data.frame(
+# Crear tabla vacia para almacenar los resultados
+tabla_general <- data.frame(
   "Variable"= character(),
   "Trend" = numeric(),
   "t" = numeric(),
@@ -21,10 +21,10 @@ tabla_final <- data.frame(
   "F" = numeric()
 )
 
-# bucle para calcular las estadisticas de todas las variables independientes
-for (i in 1:length(y)) {
-  tabla <- data.frame(
-    "Variable" = NA,
+
+for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas las variables independientes
+  tabla <- data.frame(          # Tabla vacía donde se guardan resultados de cada variable independiente 
+    "Variable" = NA,            # para despues unir a la tabla general
     "Trend" = NA,
     "t" = NA,
     "p" = NA,
@@ -32,15 +32,18 @@ for (i in 1:length(y)) {
     "P95_min" = NA,
     "F" = NA
   )
-  tabla$Variable <- y[i]
-  model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
-  tabla$Trend <- model_g$coefficients[[2]]
-  tabla$t <- summary(model_g)$coefficients[2, 3]
-  tabla$p <- summary(model_g)$coefficients[2, 4]
-  tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2]
-  tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1]
-  tabla$F <- summary(model_g)$fstatistic[1]
-  tabla_final <- rbind(tabla_final, tabla)
+  tabla$Variable <- y[i]  # Rellena primera columna con el nombre de la variable
+  model_g <- lm(formula(paste(y[i],  # Crea formula utilizando la variable del bucle
+                              paste(x, collapse = "+"),
+                              sep = " ~ ")), 
+                data = Data)
+  tabla$Trend <- model_g$coefficients[[2]] # Tendencia
+  tabla$t <- summary(model_g)$coefficients[2, 3] # t del modelo
+  tabla$p <- summary(model_g)$coefficients[2, 4] # p del modelo
+  tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2] # Intervalo de confianza max del 95%
+  tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
+  tabla$F <- summary(model_g)$fstatistic[1] # F del modelo
+  tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una d elas tablas individuales
 }
 
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para cada una de las especies
@@ -74,10 +77,10 @@ for (n in 1:length(spp)) {                             # Bucle para actuar sobre
   ind <- filter(Data, Especie == spp[n])              # Filtra la especie 
   
   if (nrow(ind) > 10) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
-    for (i in 1:5) {
-      tryCatch({
-        tabla <- data.frame(
-          "Spp" = NA,
+    for (i in 1:5) {                                  # bucle para cada una de las variables independientes
+      tryCatch({                                      # Implementa código que debe ejecutarse cuando se produce la condición de error
+        tabla <- data.frame(                          # Crea tabla vacia para despues unificar a tabla de resultados
+          "Spp" = NA,                                 
           "Variable" = NA,
           "Trend" = NA,
           "t" = NA,
@@ -87,8 +90,8 @@ for (n in 1:length(spp)) {                             # Bucle para actuar sobre
           "F" = NA,
           "Dif" = NA
         )
-        #General
-        model_g = lm(formula(paste(y[i], paste(
+        # General
+        model_g = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
           x, collapse = "+"
         ), sep = " ~ ")), data = Data)
         
@@ -107,26 +110,27 @@ for (n in 1:length(spp)) {                             # Bucle para actuar sobre
         
         
         
-        b_g <- summary(model_g)$coefficients[2,1]
-        se_g <- summary(model_g)$coefficients[2,2]
-        b_i <- summary(model_i)$coefficients[2,1]
-        se_i <- summary(model_i)$coefficients[2,2]
+        b_g <- summary(model_g)$coefficients[2,1] # Tendencia general
+        se_g <- summary(model_g)$coefficients[2,2] # Desviación estándar general
+        b_i <- summary(model_i)$coefficients[2,1] # Tendencia especie del bucle
+        se_i <- summary(model_i)$coefficients[2,2] # desciación estándar de especie del bucle
         
         
-        tabla$Dif <- 2*pnorm(-abs(compare.coeff(b_g,se_g,b_i,se_i)))
+        tabla$Dif <- 2*pnorm(-abs(compare.coeff(b_g,se_g,b_i,se_i))) # Fórmula utilizando la función "compare.coeff"
+                                                                     # para ver las diferencias entre pendientes
+        tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
         
-        tabla_ind <- rbind(tabla_ind, tabla)
-        
-      }, error = function(e) {
+      }, error = function(e) {                        # Si la función tryChach da error ejecuta esta parte del codigo
         cat(
-          paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"),
-          conditionMessage(e),
+          paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"), # Indica que especie tiene el problema y por qué
+          conditionMessage(e),                                                 
           "\n"
         )
       })
     }
   } else{
-    print(paste0("Data for ", ind[1, 1], " specie are insufficient"))
+    print(paste0("Data for ", ind[1, 1], " specie are insufficient")) # Si en el condicional no hay suficientes registros
+                                                                      # para una especie (<50) expresa el mensaje
   }
 }
 
