@@ -10,7 +10,7 @@ y <- c("Lat", "Long", "ELEVATION", "TMAX", "TMIN") # Variables independiente
 
 # All species -----
 
-# Crear tabla vacia para almacenar los resultados
+# Creamos tabla vacia para almacenar los resultados
 tabla_general <- data.frame(
   "Variable"= character(),
   "Trend" = numeric(),
@@ -172,8 +172,8 @@ for (n in 1:3) {           #length(spp)                  # Bucle para actuar sob
 spp[45]
 
 ggplot() + 
-  geom_smooth(data= Data, aes(x = Año, y = Altitud),col = "black", fill = "black", method = "lm") +
-  geom_smooth(data= ind, aes(x = Año, y = Altitud),col = "red", fill = "red", method = "lm")+
+  geom_smooth(data= Data, aes(x = Año_Mes, y = Altitud),col = "black", fill = "black", method = "lm") +
+  geom_smooth(data= ind, aes(x = Año_Mes, y = Altitud),col = "red", fill = "red", method = "lm")+
   ggtitle(paste0(spp[1]))+
   labs(x= "Year", y = "Elevation")+
   theme_minimal()
