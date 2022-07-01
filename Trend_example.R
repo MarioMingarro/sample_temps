@@ -73,13 +73,13 @@ tabla_ind <- data.frame(
 
 # Bucle para calcular las tendencias de cada una de las especies
 
-for (n in 1:length(spp)) {                             # Bucle para actuar sobre cada una de las especies
+for (n in 1:3) {           #length(spp)                  # Bucle para actuar sobre cada una de las especies
   ind <- Data %>% 
     filter( Especie == spp[n]) %>%
     mutate(group = "i")              # Filtra la especie 
   
   if (nrow(ind) > 10) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
-    for (i in 1:5) {                                  # bucle para cada una de las variables independientes
+    for (i in 1:2) {                                  # bucle para cada una de las variables independientes
       tryCatch({                                      # Implementa código que debe ejecutarse cuando se produce la condición de error
         tabla <- data.frame(                          # Crea tabla vacia para despues unificar a tabla de resultados
           "Spp" = NA,                                 
@@ -87,8 +87,8 @@ for (n in 1:length(spp)) {                             # Bucle para actuar sobre
           "Trend" = NA,
           "t" = NA,
           "p" = NA,
-          "95_max" = NA,
-          "95_min" = NA,
+          "P95_max" = NA,
+          "P95_min" = NA,
           "F" = NA,
           "Dif_1_pvalue" = NA,
           "Dif_2_coef" = NA,
@@ -110,8 +110,8 @@ for (n in 1:length(spp)) {                             # Bucle para actuar sobre
         tabla$Trend <- model_i$coefficients[[2]]
         tabla$t <- summary(model_i)$coefficients[2, 3]
         tabla$p <- summary(model_i)$coefficients[2, 4]
-        tabla$X95_max <-  confint(model_i, "Año", level = .95)[, 2]
-        tabla$X95_min <-  confint(model_i, "Año", level = .95)[, 1]
+        tabla$P95_max <-  confint(model_i, "Año_Mes", level = .95)[, 2]
+        tabla$P95_min <-  confint(model_i, "Año_Mes", level = .95)[, 1]
         tabla$F <- summary(model_i)$fstatistic[1]
         
         
@@ -142,13 +142,13 @@ for (n in 1:length(spp)) {                             # Bucle para actuar sobre
         
         
         model_int = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
-          x,"*df", collapse = "+"
+          x,"*group", collapse = "+"
         ), sep = " ~ ")), data = dat)
         
        
-        Dif_2_coef$summary(model_int)$coefficients[4,1]
-        Dif_2_pvalue$summary(model_int)$coefficients[4,4]
-        Dif_2_F$summary(model_int)$fstatistic[1]
+        tabla$Dif_2_coef <- summary(model_int)$coefficients[4,1]
+        tabla$Dif_2_pvalue <- summary(model_int)$coefficients[4,4]
+        tabla$Dif_2_F <- summary(model_int)$fstatistic[1]
        
         tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
         
