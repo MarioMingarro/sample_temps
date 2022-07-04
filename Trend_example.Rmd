@@ -226,7 +226,7 @@ DT::datatable(tabla_ind_lat,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:length(y)){
+for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 50) {
   print(ggplot() + 
@@ -261,7 +261,7 @@ DT::datatable(tabla_ind_lon,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:length(y)){
+for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 50) {
   print(ggplot() + 
@@ -295,7 +295,7 @@ DT::datatable(tabla_ind_elev,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:length(y)){
+for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 50) {
     print(ggplot() + 
@@ -329,7 +329,7 @@ DT::datatable(tabla_ind_tmax,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:length(y)){
+for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 50) {
     print(ggplot() + 
@@ -363,7 +363,7 @@ DT::datatable(tabla_ind_tmin,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:length(y)){
+for ( i in 1:length(spp)){
   ind <- filter(Data, Especie == spp[i])
   if (nrow(ind) > 50) {
     print(ggplot() + 
