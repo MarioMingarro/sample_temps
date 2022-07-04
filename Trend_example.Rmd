@@ -1,7 +1,7 @@
 ---
 title: "Untitled"
 author: "Mario"
-date: "14/6/2022"
+date: "04/07/2022"
 output:
   html_document:
     toc: true             # Crea tabla de contenido
@@ -12,7 +12,6 @@ output:
       smooth_scroll: true # Desplazamientos "animados" en vez de directos
 ---
 Librerías
-
 ```{r, warning=FALSE, message=FALSE}
 library(readxl)
 library(tidyverse)
@@ -45,7 +44,7 @@ Bucle para obtener tendencia con cada variable independiente
 ```{r}
 for (i in 1:length(y)) {        
   tabla <- data.frame(          # Tabla vacía donde se guardan resultados de cada variable independiente 
-    "Variable" = NA,            # para despues unir a la tabla final
+    "Variable" = NA,            # para después unir a la tabla final
     "Trend" = NA,
     "t" = NA,
     "p" = NA,
@@ -111,15 +110,15 @@ tabla_ind <- data.frame(
 
 Bucle para calcular las tendencias de cada una de las especies y comparar con el set global
 ```{r, warning=FALSE}
-for (n in 1:3) {           #length(spp)               # Bucle para actuar sobre cada una de las especies
+for (n in 1:length(spp)) {                            # Bucle para actuar sobre cada una de las especies
   ind <- Data %>% 
     filter( Especie == spp[n]) %>%
     mutate(group = "i")                               # Filtra la especie 
   
   if (nrow(ind) > 50) {                               # Condicional "SI" para seleccionar aquellas especies con mas de                                                        # 50 registros
-    for (i in 1:2) {                                  # Bucle para cada una de las variables independientes
+    for (i in 1:length(y)) {                          # Bucle para cada una de las variables independientes
       tryCatch({                                      # Implementa código que debe ejecutarse cuando se produce la condición de error
-        tabla <- data.frame(                          # Crea tabla vacia para despues unificar a tabla de resultados
+        tabla <- data.frame(                          # Crea tabla vacía para después unificar a tabla de resultados
           "Spp" = NA,                                 
           "Variable" = NA,
           "Trend" = NA,
@@ -139,7 +138,7 @@ for (n in 1:3) {           #length(spp)               # Bucle para actuar sobre 
           x, collapse = "+"                      # Al ser un bucle hay que utilizar la función formula y paste
         ), sep = " ~ ")), data = Data)
         
-        tabla$Spp <- unique(ind[[1]])           # Selecciona un inico nombre de la especie filtrada del bucle
+        tabla$Spp <- unique(ind[[1]])           # Selecciona un inicio nombre de la especie filtrada del bucle
         tabla$Variable <- y[i]                  # Variable independiente utilizada en el bucle
         model_i <-                              # Crea el modelo de cada especie para la posterior comparación
           lm(formula(paste(y[i], paste(
@@ -163,15 +162,15 @@ for (n in 1:3) {           #length(spp)               # Bucle para actuar sobre 
         b_g <- summary(model_g)$coefficients[2,1] # Tendencia general
         se_g <- summary(model_g)$coefficients[2,2] # Desviación estándar general
         b_i <- summary(model_i)$coefficients[2,1] # Tendencia especie del bucle
-        se_i <- summary(model_i)$coefficients[2,2] # desciación estándar de especie del bucle
+        se_i <- summary(model_i)$coefficients[2,2] # desviación estándar de especie del bucle
         
         
         tabla$Dif_1_pvalue <- 2*pnorm(-abs(compare.coeff(b_g,se_g,b_i,se_i))) # Fórmula utilizando la función "compare.coeff"
         
-        # Metodo 2  
-        # Crear un modelo incroporando la interación de la pendiente general con la de la especie Variable independiente*Año_Mes
-        # el coeficiente indica que la pendiente d ela especie es mayor o menor que la pendiente del conjunto de datos.
-        # Tambien observamos el pvalor para ver si es significativo (inf a 0,05 son pendientes diferentes)
+        # Método 2  
+        # Crear un modelo incorporando la interacción de la pendiente general con la de la especie Variable independiente*Año_Mes
+        # el coeficiente indica que la pendiente de la especie es mayor o menor que la pendiente del conjunto de datos.
+        # También observamos el pvalor para ver si es significativo (inf a 0,05 son pendientes diferentes)
         
         
         gen <- Data %>%
@@ -191,7 +190,7 @@ for (n in 1:3) {           #length(spp)               # Bucle para actuar sobre 
        
         tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
         
-      }, error = function(e) {                        # Si la función tryChach da error ejecuta esta parte del codigo
+      }, error = function(e) {                        # Si la función tryChach da error ejecuta esta parte del código
         cat(
           paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"), # Indica que especie tiene el problema y por qué
           conditionMessage(e),                                                 
@@ -206,6 +205,8 @@ for (n in 1:3) {           #length(spp)               # Bucle para actuar sobre 
 }
 ```
 # Variables
+A partir de aquí se generan los resultados y tablas para cada variable independiente  
+ 
 # Latitude
 ## Table
 
@@ -225,12 +226,12 @@ DT::datatable(tabla_ind_lat,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:5){
+for ( i in 1:length(y)){
   ind <- filter(Data, Especie == spp[i])
-  if (nrow(ind) > 10) {
+  if (nrow(ind) > 50) {
   print(ggplot() + 
-  geom_smooth(data= Data, aes(x = Año, y = Lat),col = "black", fill = "black", method = "lm") +
-  geom_smooth(data= ind, aes(x = Año, y = Lat),col = "red", fill = "red", method = "lm")+
+  geom_smooth(data= Data, aes(x = Año_Mes, y = Lat),col = "black", fill = "black", method = "lm") +
+  geom_smooth(data= ind, aes(x = Año_Mes, y = Lat),col = "red", fill = "red", method = "lm")+
   ggtitle(paste0(spp[i]))+
   labs(x= "Year", y = "Latitude")+
   theme_minimal())
@@ -260,12 +261,12 @@ DT::datatable(tabla_ind_lon,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:5){
+for ( i in 1:length(y)){
   ind <- filter(Data, Especie == spp[i])
-  if (nrow(ind) > 10) {
+  if (nrow(ind) > 50) {
   print(ggplot() + 
-  geom_smooth(data= Data, aes(x = Año, y = Long),col = "black", fill = "black", method = "lm") +
-  geom_smooth(data= ind, aes(x = Año, y = Long),col = "red", fill = "red", method = "lm")+
+  geom_smooth(data= Data, aes(x = Año_Mes, y = Long),col = "black", fill = "black", method = "lm") +
+  geom_smooth(data= ind, aes(x = Año_Mes, y = Long),col = "red", fill = "red", method = "lm")+
   ggtitle(paste0(spp[i]))+
   labs(x= "Year", y = "Longitude")+
   theme_minimal())
@@ -279,7 +280,7 @@ for ( i in 1:5){
 
 ## Table
 ```{r}
-tabla_ind_elev <- filter(tabla_ind, Variable == "Altitud")
+tabla_ind_elev <- filter(tabla_ind, Variable == "ELEVATION")
 DT::datatable(tabla_ind_elev,
               class = "nowrap",
               filter = 'top',
@@ -294,12 +295,12 @@ DT::datatable(tabla_ind_elev,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:5){
+for ( i in 1:length(y)){
   ind <- filter(Data, Especie == spp[i])
-  if (nrow(ind) > 10) {
+  if (nrow(ind) > 50) {
     print(ggplot() + 
-            geom_smooth(data= Data, aes(x = Año, y = Altitud),col = "black", fill = "black", method = "lm") +
-            geom_smooth(data= ind, aes(x = Año, y = Altitud),col = "red", fill = "red", method = "lm")+
+            geom_smooth(data= Data, aes(x = Año_Mes, y = ELEVATION),col = "black", fill = "black", method = "lm") +
+            geom_smooth(data= ind, aes(x = Año_Mes, y =  ELEVATION),col = "red", fill = "red", method = "lm")+
             ggtitle(paste0(spp[i]))+
             labs(x= "Year", y = "Elevation")+
             theme_minimal())
@@ -328,12 +329,12 @@ DT::datatable(tabla_ind_tmax,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:5){
+for ( i in 1:length(y)){
   ind <- filter(Data, Especie == spp[i])
-  if (nrow(ind) > 10) {
+  if (nrow(ind) > 50) {
     print(ggplot() + 
-            geom_smooth(data= Data, aes(x = Año, y = TMAX),col = "black", fill = "black", method = "lm") +
-            geom_smooth(data= ind, aes(x = Año, y = TMAX),col = "red", fill = "red", method = "lm")+
+            geom_smooth(data= Data, aes(x = Año_Mes, y = TMAX),col = "black", fill = "black", method = "lm") +
+            geom_smooth(data= ind, aes(x = Año_Mes, y = TMAX),col = "red", fill = "red", method = "lm")+
             ggtitle(paste0(spp[i]))+
             labs(x= "Year", y = "Maximum temperature")+
             theme_minimal())
@@ -348,7 +349,7 @@ for ( i in 1:5){
 ## Table
 ```{r}
 tabla_ind_tmin <- filter(tabla_ind, Variable == "TMIN")
-DT::datatable(tabla_ind_lat,
+DT::datatable(tabla_ind_tmin,
               class = "nowrap",
               filter = 'top',
   extensions = "Buttons",
@@ -362,12 +363,12 @@ DT::datatable(tabla_ind_lat,
 
 ## Graphs
 ```{r, warning=FALSE, message=FALSE}
-for ( i in 1:5){
+for ( i in 1:length(y)){
   ind <- filter(Data, Especie == spp[i])
-  if (nrow(ind) > 10) {
+  if (nrow(ind) > 50) {
     print(ggplot() + 
-            geom_smooth(data= Data, aes(x = Año, y = TMIN),col = "black", fill = "black", method = "lm") +
-            geom_smooth(data= ind, aes(x = Año, y = TMIN),col = "red", fill = "red", method = "lm")+
+            geom_smooth(data= Data, aes(x = Año_Mes, y = TMIN),col = "black", fill = "black", method = "lm") +
+            geom_smooth(data= ind, aes(x = Año_Mes, y = TMIN),col = "red", fill = "red", method = "lm")+
             ggtitle(paste0(spp[i]))+
             labs(x= "Year", y = "Minimum temperature")+
             theme_minimal())
