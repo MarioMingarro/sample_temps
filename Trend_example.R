@@ -59,27 +59,31 @@ compare.coeff <- function(b_g,se_g,b_i,se_i){
 }
 
 # Tabla vacía para guardar los resultados 
-tabla_ind <- data.frame(
-  "Spp" = character(),
-  "Variable"= character(),
-  "Trend" = numeric(),
-  "t" = numeric(),
-  "p" = numeric(),
-  "95_max" = numeric(),
-  "95_min" = numeric(),
-  "F" = numeric(),
-  "Dif" = numeric()
+tabla_ind <- data.frame(                         
+  "Spp" = NA,                                 
+  "Variable" = NA,
+  "Trend" = NA,
+  "t" = NA,
+  "p" = NA,
+  "P95_max" = NA,
+  "P95_min" = NA,
+  "F" = NA,
+  "Dif_1_pvalue" = NA,
+  "Dif_2_coef" = NA,
+  "Dif_2_pvalue" = NA,
+  "Dif_2_F" = NA,
+  "Dif_2_F_ind" = NA
 )
 
 # Bucle para calcular las tendencias de cada una de las especies
 
-for (n in 1:3) {           #length(spp)                  # Bucle para actuar sobre cada una de las especies
+for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las especies
   ind <- Data %>% 
     filter( Especie == spp[n]) %>%
     mutate(group = "i")              # Filtra la especie 
   
   if (nrow(ind) > 10) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
-    for (i in 1:2) {                                  # bucle para cada una de las variables independientes
+    for (i in 1:length(y)) {                                  # bucle para cada una de las variables independientes
       tryCatch({                                      # Implementa código que debe ejecutarse cuando se produce la condición de error
         tabla <- data.frame(                          # Crea tabla vacia para despues unificar a tabla de resultados
           "Spp" = NA,                                 
@@ -93,7 +97,8 @@ for (n in 1:3) {           #length(spp)                  # Bucle para actuar sob
           "Dif_1_pvalue" = NA,
           "Dif_2_coef" = NA,
           "Dif_2_pvalue" = NA,
-          "Dif_2_F" = NA
+          "Dif_2_F" = NA,
+          "Dif_2_F_ind" = NA
         )
         # General
         model_g = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
@@ -145,10 +150,14 @@ for (n in 1:3) {           #length(spp)                  # Bucle para actuar sob
           x,"*group", collapse = "+"
         ), sep = " ~ ")), data = dat)
         
-       
+        
+        
         tabla$Dif_2_coef <- summary(model_int)$coefficients[4,1]
         tabla$Dif_2_pvalue <- summary(model_int)$coefficients[4,4]
         tabla$Dif_2_F <- summary(model_int)$fstatistic[1]
+        
+        f <- anova(model_int)
+        tabla$Dif_2_F_ind <- f$`F value`[3]
        
         tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
         
@@ -165,3 +174,5 @@ for (n in 1:3) {           #length(spp)                  # Bucle para actuar sob
                                                                       # para una especie (<50) expresa el mensaje
   }
 }
+
+write.csv(tabla_ind, "tabla_resultados.csv")
