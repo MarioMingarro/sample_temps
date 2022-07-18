@@ -4,7 +4,7 @@ library(tidyverse)
 Data <- read_excel("Data.xlsx") # Cargamos datos
 
 x <- "Año_Mes" # Variable dependiente
-y <- c("Lat", "Long", "ELEVATION", "TMAX", "TMIN") # Variables independiente
+y <- c("Lat", "Long", "Elevation", "TMAX", "TMIN") # Variables independiente
 
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para el set global de datos
 
@@ -176,3 +176,54 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
 }
 
 write.csv(tabla_ind, "tabla_resultados.csv")
+
+
+## Significance
+
+
+Tabla_sig <- 
+  tabla_ind %>%
+  na.omit() %>% 
+  select(c(Spp, Variable, Dif_1_pvalue)) %>% 
+  pivot_wider(
+    names_from = Variable,
+    values_from = Dif_1_pvalue) %>%
+  mutate(Geographical =
+           case_when(Lat <= 0.01 | Long <= 0.01 ~ 1,
+                     TRUE ~ 0)) %>% 
+  mutate(Lat =
+           case_when(Lat <= 0.01 ~ 1,
+                     TRUE ~ 0)) %>%
+  mutate(Long =
+           case_when(Long <= 0.01 ~ 1,
+                     TRUE ~ 0)) %>% 
+  mutate(Elevation =
+           case_when(Elevation <= 0.01 ~ 1,
+                     TRUE ~ 0)) %>%
+  mutate(TMAX =
+           case_when(TMAX <= 0.01 ~ 1,
+                     TRUE ~ 0)) %>%
+  mutate(TMIN =
+           case_when(TMIN <= 0.01 ~ 1,
+                     TRUE ~ 0)) %>% 
+  mutate(Spatial =
+         case_when(Geographical == 1 | Elevation == 1  ~ "Adaptation",
+                   TRUE ~ "Permanence")) %>% 
+  mutate(Thermal =
+           case_when(TMAX == 1 | TMIN == 1  ~ "Tolerance",
+                     TRUE ~ "Adjust")) 
+
+
+Tabla_sig <- 
+  tabla_ind %>%
+  na.omit() %>% 
+  select(c(Spp, Variable, Dif_1_pvalue)) %>% 
+  pivot_wider(
+    names_from = Variable,
+    values_from = Dif_1_pvalue) %>%
+  mutate(Spatial =
+           case_when(Lat <= 0.01 | Long <= 0.01 | Elevation <= 0.01 ~ "Adaptation",
+                     TRUE ~ "Permanence")) %>% 
+  mutate(Thermal =
+           case_when(TMIN <= 0.01 | TMAX <= 0.01 ~ "Tolerance",
+                     TRUE ~ "Adjust")) 
