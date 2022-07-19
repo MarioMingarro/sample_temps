@@ -1,5 +1,6 @@
 library(readxl)
 library(tidyverse)
+library(writexl)
 
 Data <- read_excel("Data.xlsx") # Cargamos datos
 
@@ -156,7 +157,7 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
         tabla$Dif_2_coef <- summary(model_int)$coefficients[4,1]
         tabla$Dif_2_pvalue <- summary(model_int)$coefficients[4,4]
         tabla$Dif_2_F <- summary(model_int)$fstatistic[1]
-        
+        f <- anova(model_int)
         tabla$Dif_2_F_ind <- f$`F value`[3]
        
         tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
@@ -213,7 +214,7 @@ Tabla_res <- Tabla_sig %>%
   arrange(desc(n)) %>% 
   mutate(Frecuency = (n *100) / sum(n))
 
-library(writexl)
+
 sheets <- list("All_Results" = tabla_ind, 
                "Significance_Results" = Tabla_sig,
                "Estrategies_Results" = Tabla_res) 
