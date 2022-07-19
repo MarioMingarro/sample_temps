@@ -74,6 +74,7 @@ tabla_ind <- data.frame(
   "Dif_2_F" = NA,
   "Dif_2_F_ind" = NA
 )
+tabla_ind <- tabla_ind[-1,]
 
 # Bucle para calcular las tendencias de cada una de las especies
 
@@ -82,7 +83,7 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
     filter( Especie == spp[n]) %>%
     mutate(group = "i")              # Filtra la especie 
   
-  if (nrow(ind) > 10) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
+  if (nrow(ind) > 50) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
     for (i in 1:length(y)) {                                  # bucle para cada una de las variables independientes
       tryCatch({                                      # Implementa código que debe ejecutarse cuando se produce la condición de error
         tabla <- data.frame(                          # Crea tabla vacia para despues unificar a tabla de resultados
@@ -156,7 +157,6 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
         tabla$Dif_2_pvalue <- summary(model_int)$coefficients[4,4]
         tabla$Dif_2_F <- summary(model_int)$fstatistic[1]
         
-        f <- anova(model_int)
         tabla$Dif_2_F_ind <- f$`F value`[3]
        
         tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
@@ -175,11 +175,54 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
   }
 }
 
-write.csv(tabla_ind, "tabla_resultados.csv")
-
 
 ## Significance
 
+
+Tabla_sig <-
+  tabla_ind %>%
+  select(c(Spp, Variable, Dif_1_pvalue)) %>% # Selecciono las variables 
+  pivot_wider(names_from = Variable, #cambia la estructura de la tabla
+              values_from = Dif_1_pvalue) %>%
+  mutate(   # Añade columna de spatial y le asigna una categoría segun los pvalues de latitud, longitud o elevacion
+    Spatial =
+      case_when(
+        Lat <= 0.01 & Elevation <= 0.01 ~ "Spatial Adaptation",
+        Long <= 0.01 & Elevation <= 0.01 ~ "Spatial Adaptation",
+        Lat <= 0.01 | Long <= 0.01  ~ "Spatial Geographical Adaptation",
+        Elevation <= 0.01  ~ "Spatial Elevational Adaptation",
+        TRUE ~ "Spatial Permanence"))  %>%
+  mutate( # Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin
+    Thermal =
+      case_when(
+        TMIN <= 0.01 & TMAX <= 0.01 ~ " Thermal Tolerance",
+        TMAX <= 0.01 ~ "Thermal Tolerance in Tmax",
+        TMIN <= 0.01 ~ "Thermal Tolerance in Tmin",
+        TRUE ~ "Thermal Adjust")) %>%
+  left_join( # Une el numero de registros obtenidos del conjunto global de datos
+    Data %>%
+      group_by(Especie) %>%
+      summarise(Registros = n()),
+    by = c("Spp" = "Especie")) 
+
+
+# Crea una tabla resumen y calcula el porcentaje de las estrategias
+Tabla_res <- Tabla_sig %>% 
+  group_by(Spatial,Thermal) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  mutate(Frecuency = (n *100) / sum(n))
+
+library(writexl)
+sheets <- list("All_Results" = tabla_ind, 
+               "Significance_Results" = Tabla_sig,
+               "Estrategies_Results" = Tabla_res) 
+
+write_xlsx(sheets, "Resultados_R.xlsx")
+
+##################################################################################
+##################################################################################
+#################################################################################
 
 Tabla_sig <- 
   tabla_ind %>%
@@ -207,8 +250,8 @@ Tabla_sig <-
            case_when(TMIN <= 0.01 ~ 1,
                      TRUE ~ 0)) %>% 
   mutate(Spatial =
-         case_when(Geographical == 1 | Elevation == 1  ~ "Adaptation",
-                   TRUE ~ "Permanence")) %>% 
+           case_when(Geographical == 1 | Elevation == 1  ~ "Adaptation",
+                     TRUE ~ "Permanence")) %>% 
   mutate(Thermal =
            case_when(TMAX == 1 | TMIN == 1  ~ "Tolerance",
                      TRUE ~ "Adjust")) 
