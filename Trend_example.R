@@ -18,8 +18,7 @@ tabla_general <- data.frame(
   "t" = numeric(),
   "p" = numeric(),
   "P95_max" = numeric(),
-  "P95_min" = numeric(),
-  "F" = numeric()
+  "P95_min" = numeric()
 )
 
 
@@ -30,8 +29,7 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
     "t" = NA,
     "p" = NA,
     "P95_max" = NA,
-    "P95_min" = NA,
-    "F" = NA
+    "P95_min" = NA
   )
   tabla$Variable <- y[i]  # Rellena primera columna con el nombre de la variable
   model_g <- lm(formula(paste(y[i],  # Crea formula utilizando la variable del bucle
@@ -43,7 +41,6 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
   tabla$p <- summary(model_g)$coefficients[2, 4] # p del modelo
   tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2] # Intervalo de confianza max del 95%
   tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
-  tabla$F <- summary(model_g)$fstatistic[1] # F del modelo
   tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una d elas tablas individuales
 }
 
@@ -54,10 +51,6 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
 
 spp <- unique(Data$Especie) # Creamos un vector con los nombres de las especies
 
-# Creamos una función para comparar las tendencias
-compare.coeff <- function(b_g,se_g,b_i,se_i){
-  return((b_g-b_i)/sqrt(se_g^2+se_i^2))
-}
 
 # Tabla vacía para guardar los resultados 
 tabla_ind <- data.frame(                         
@@ -68,12 +61,9 @@ tabla_ind <- data.frame(
   "p" = NA,
   "P95_max" = NA,
   "P95_min" = NA,
-  "F" = NA,
-  "Dif_1_pvalue" = NA,
-  "Dif_2_coef" = NA,
-  "Dif_2_pvalue" = NA,
-  "Dif_2_F" = NA,
-  "Dif_2_F_ind" = NA
+  "Dif_pvalue" = NA,
+  "Dif_df" = NA,
+  "Dif_F" = NA
 )
 tabla_ind <- tabla_ind[-1,]
 
@@ -95,12 +85,9 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
           "p" = NA,
           "P95_max" = NA,
           "P95_min" = NA,
-          "F" = NA,
-          "Dif_1_pvalue" = NA,
-          "Dif_2_coef" = NA,
-          "Dif_2_pvalue" = NA,
-          "Dif_2_F" = NA,
-          "Dif_2_F_ind" = NA
+          "Dif_pvalue" = NA,
+          "Dif_df" = NA,
+          "Dif_F" = NA
         )
         # General
         model_g = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
@@ -119,22 +106,9 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
         tabla$p <- summary(model_i)$coefficients[2, 4]
         tabla$P95_max <-  confint(model_i, "Año_Mes", level = .95)[, 2]
         tabla$P95_min <-  confint(model_i, "Año_Mes", level = .95)[, 1]
-        tabla$F <- summary(model_i)$fstatistic[1]
         
         
-        # Dos formas de ver si las tendencias de las especies difieren de la general
         
-        # Método 1
-        # Obtener una estadística z al encontrar la diferencia entre los dos coeficientes 
-        # y luego dividirla por un error estándar combinado. Ver https://www.jstor.org/stable/2782277?seq=1#page_scan_tab_contents
-        
-        b_g <- summary(model_g)$coefficients[2,1] # Tendencia general
-        se_g <- summary(model_g)$coefficients[2,2] # Desviación estándar general
-        b_i <- summary(model_i)$coefficients[2,1] # Tendencia especie del bucle
-        se_i <- summary(model_i)$coefficients[2,2] # desciación estándar de especie del bucle
-        
-        
-        tabla$Dif_1_pvalue <- 2*pnorm(-abs(compare.coeff(b_g,se_g,b_i,se_i))) # Fórmula utilizando la función "compare.coeff"
         
         # Metodo 2  
         # Crear un modelo incroporando la interación de la pendiente general con la de la especie Variable independiente*Año_Mes
@@ -154,11 +128,13 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
         
         
         
-        tabla$Dif_2_coef <- summary(model_int)$coefficients[4,1]
-        tabla$Dif_2_pvalue <- summary(model_int)$coefficients[4,4]
-        tabla$Dif_2_F <- summary(model_int)$fstatistic[1]
+      
+        tabla$Dif_pvalue <- summary(model_int)$coefficients[4,4]
+        
         f <- anova(model_int)
-        tabla$Dif_2_F_ind <- f$`F value`[3]
+        
+        tabla$Dif_df <- paste0("1 - ", f$Df[4])
+        tabla$Dif_F <- f$`F value`[3]
        
         tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
         
@@ -182,9 +158,9 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
 
 Tabla_sig <-
   tabla_ind %>%
-  select(c(Spp, Variable, Dif_1_pvalue)) %>% # Selecciono las variables 
+  select(c(Spp, Variable, Dif_pvalue)) %>% # Selecciono las variables 
   pivot_wider(names_from = Variable, #cambia la estructura de la tabla
-              values_from = Dif_1_pvalue) %>%
+              values_from = Dif_pvalue) %>%
   mutate(   # Añade columna de spatial y le asigna una categoría segun los pvalues de latitud, longitud o elevacion
     Spatial =
       case_when(
@@ -215,9 +191,18 @@ Tabla_res <- Tabla_sig %>%
   mutate(Frecuency = (n *100) / sum(n))
 
 
+spp_used <- plyr::count(Data, "Especie")
+
+spp_sin_analisis <- as.data.frame(setdiff(spp,unique(tabla_ind[,1])))
+names(spp_sin_analisis) <-  "Especie"
+spp_sin_analisis <- left_join(spp_sin_analisis, spp_used)
+
+
 sheets <- list("All_Results" = tabla_ind, 
                "Significance_Results" = Tabla_sig,
-               "Estrategies_Results" = Tabla_res) 
+               "Estrategies_Results" = Tabla_res,
+               "Species_used" = spp_used,
+               "Species_with_insuficient_data" = spp_sin_analisis) 
 
 write_xlsx(sheets, "Resultados_R.xlsx")
 
