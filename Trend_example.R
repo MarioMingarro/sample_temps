@@ -156,6 +156,7 @@ for (n in 1:length(spp)) {            # Bucle para actuar sobre cada una de las 
 ## Significance
 
 
+
 Tabla_sig <-
   tabla_ind %>%
   select(c(Spp, Variable, Dif_pvalue)) %>% # Selecciono las variables 
@@ -198,11 +199,14 @@ names(spp_sin_analisis) <-  "Especie"
 spp_sin_analisis <- left_join(spp_sin_analisis, spp_used)
 
 
-sheets <- list("All_Results" = tabla_ind, 
-               "Significance_Results" = Tabla_sig,
-               "Estrategies_Results" = Tabla_res,
-               "Species_used" = spp_used,
-               "Species_with_insuficient_data" = spp_sin_analisis) 
+sheets <- list(
+  "General_Results" = tabla_general,
+  "Spp_Results" = tabla_ind,
+  "Significance_Results" = Tabla_sig,
+  "Estrategies_Results" = Tabla_res,
+  "Species_used" = spp_used,
+  "Species_with_insuficient_data" = spp_sin_analisis
+)
 
 write_xlsx(sheets, "Resultados_R.xlsx")
 
