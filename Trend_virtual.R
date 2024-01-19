@@ -49,6 +49,7 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
   tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
   tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una d elas tablas individuales
 }
+rm(tabla, model_g, i)
 
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para cada una de las especies
 # Además comparamos la tendencia de cada una de las especies con la tendencia del conjunto de datos
@@ -57,11 +58,28 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
 
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 
-
+spp <- spp[1:50]
 
 # Creamos funcion
-species_trend <-
-  function(spp, Data, y) {
+#species_trend <-
+  #function(spp, Data, y) 
+    tabla_ind <- data.frame(                         
+      "Spp" = NA,                                 
+      "Variable" = NA,
+      "Trend" = NA,
+      "t" = NA,
+      "p" = NA,
+      "P95_max" = NA,
+      "P95_min" = NA,
+      "Dif_pvalue" = NA,
+      "Dif_df" = NA,
+      "Dif_F" = NA
+    )
+tabla_ind <- tabla_ind[-1,]
+
+# Bucle para calcular las tendencias de cada una de las especies
+tic()
+for (n in 1:length(spp)){
     # Bucle para actuar sobre cada una de las especies
     ind <- Data %>%
       filter(species == spp[n]) %>%
@@ -125,8 +143,8 @@ species_trend <-
           
           tabla$Dif_df <- paste0("1 - ", f$Df[4])
           tabla$Dif_F <- f$`F value`[3]
-          #tabla_ind <- rbind(tabla_ind, tabla) 
-          return(tabla)  # Unimos tablas
+          tabla_ind <- rbind(tabla_ind, tabla) 
+          #return(tabla)  # Unimos tablas
           
         }, error = function(e) {
           # Si la función tryChach da error ejecuta esta parte del codigo
@@ -143,7 +161,7 @@ species_trend <-
       # para una especie (<50) expresa el mensaje
     }
   }
-
+toc()
 spp <- spp[1:2]
 
 # Tabla vacía para guardar los resultados 
@@ -164,8 +182,7 @@ tabla_ind <- tabla_ind[-1,]
 
 tic()
 for(i in spp){
-  a <- species_trend(spp, Data, y)
-  tabla_ind <- rbind(tabla_ind, tabla)
+  tabla_ind <- rbind(tabla_ind, species_trend(spp, Data, y))
 }
 
 toc()
@@ -193,7 +210,7 @@ Tabla_sig <-
       summarise(Registros = n()),
     by = c("Spp" = "species")) 
 
-
+writexl::write_xlsx(Tabla_sig, "./sig.xlsx")
 # Crea una tabla resumen y calcula el porcentaje de las estrategias
 Tabla_res <- Tabla_sig %>% 
   group_by(Spatial,Thermal) %>% 
