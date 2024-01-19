@@ -1,6 +1,9 @@
 library(readxl)
 library(tidyverse)
 library(writexl)
+library(foreach)
+library(doParallel)
+library(tictoc)
 
 Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.01.rds") # Cargamos datos
 Data$Año_Mes <- Data$month * 0.075
@@ -55,6 +58,94 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 
 
+
+# Creamos funcion
+species_trend <-
+  function(spp, Data, y) {
+    # Bucle para actuar sobre cada una de las especies
+    ind <- Data %>%
+      filter(species == spp[n]) %>%
+      mutate(group = "i")                             # Filtra la especie
+    
+    if (nrow(ind) > 50) {
+      # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
+      for (i in 1:length(y)) {
+        # Bbucle para cada una de las variables independientes
+        tryCatch({
+          # Implementa código que debe ejecutarse cuando se produce la condición de error
+          tabla <-
+            data.frame(
+              # Crea tabla vacia para despues unificar a tabla de resultados
+              "Spp" = NA,
+              "Variable" = NA,
+              "Trend" = NA,
+              "t" = NA,
+              "p" = NA,
+              "P95_max" = NA,
+              "P95_min" = NA,
+              "Dif_pvalue" = NA,
+              "Dif_df" = NA,
+              "Dif_F" = NA
+            )
+          # General
+          model_g = lm(formula(paste(y[i], paste(
+            # Crea de nuevo el modelo general para la posterior comparación
+            x, collapse = "+"
+          ), sep = " ~ ")), data = Data)
+          
+          tabla$Spp <- unique(ind[[1]])
+          tabla$Variable <- y[i]
+          model_i <-
+            # Crea el modelo de cada especie para la posterior comparación
+            lm(formula(paste(y[i], paste(
+              x, collapse = "+"
+            ), sep = " ~ ")), data = ind)
+          
+          tabla$Trend <- model_i$coefficients[[2]]
+          tabla$t <- summary(model_i)$coefficients[2, 3]
+          tabla$p <- summary(model_i)$coefficients[2, 4]
+          tabla$P95_max <-
+            confint(model_i, "Año_Mes", level = .95)[, 2]
+          tabla$P95_min <-
+            confint(model_i, "Año_Mes", level = .95)[, 1]
+          
+          gen <- Data %>%
+            mutate(group = "g")
+          
+          dat <- rbind(gen, ind)
+          
+          model_int = lm(formula(paste(
+            y[i], paste(# Crea de nuevo el modelo general para la posterior comparación
+              x, "*group", collapse = "+"), sep = " ~ "
+          )), data = dat)
+          
+          tabla$Dif_pvalue <- summary(model_int)$coefficients[4, 4]
+          
+          f <- anova(model_int)
+          
+          tabla$Dif_df <- paste0("1 - ", f$Df[4])
+          tabla$Dif_F <- f$`F value`[3]
+          #tabla_ind <- rbind(tabla_ind, tabla) 
+          return(tabla)  # Unimos tablas
+          
+        }, error = function(e) {
+          # Si la función tryChach da error ejecuta esta parte del codigo
+          cat(
+            paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"),
+            # Indica que especie tiene el problema y por qué
+            conditionMessage(e),
+            "\n"
+          )
+        })
+      }
+    } else{
+      print(paste0("Data for ", ind[1, 1], " specie are insufficient")) # Si en el condicional no hay suficientes registros
+      # para una especie (<50) expresa el mensaje
+    }
+  }
+
+spp <- spp[1:2]
+
 # Tabla vacía para guardar los resultados 
 tabla_ind <- data.frame(                         
   "Spp" = NA,                                 
@@ -68,242 +159,39 @@ tabla_ind <- data.frame(
   "Dif_df" = NA,
   "Dif_F" = NA
 )
+
 tabla_ind <- tabla_ind[-1,]
 
-# Bucle para calcular las tendencias de cada una de las especies
-library(foreach)
-library(doMC)
-library(tictoc)
-
-registerDoMC(8) 
-library(doParallel)
-
-cl <- makePSOCKcluster(detectCores() - 1)
-registerDoParallel(cl)
-
-
-
-# Instala los paquetes si no están instalados
-if (!require("foreach")) install.packages("foreach")
-if (!require("doParallel")) install.packages("doParallel")
-
-# Carga los paquetes
-library(foreach)
-library(doParallel)
-
-# Especifica el número de núcleos que deseas usar
-num_cores <- 4  # Puedes ajustar según el número de núcleos disponibles en tu máquina
-
-# Configura el backend de foreach para paralelizar
-registerDoParallel(num_cores)
-
-# Crea una lista de especies (spp) y variables independientes (y)
-spp <- unique(Data$species)
-
-# Inicia el bucle foreach para paralelizar
-resultados <- foreach(n = 1:10, .combine = rbind) %dopar% {
-  ind <- Data %>% 
-    filter(species == spp[n]) %>%
-    mutate(group = "i")
-  
-  if (nrow(ind) > 50) {
-    tabla_ind <- data.frame()
-    for (i in 1:length(y)) {
-      tryCatch({
-        tabla <- data.frame(
-          "Spp" = NA,
-          "Variable" = NA,
-          "Trend" = NA,
-          "t" = NA,
-          "p" = NA,
-          "P95_max" = NA,
-          "P95_min" = NA,
-          "Dif_pvalue" = NA,
-          "Dif_df" = NA,
-          "Dif_F" = NA
-        )
-        
-        # General
-        model_g = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
-          x, collapse = "+"
-        ), sep = " ~ ")), data = Data)
-        
-        tabla$Spp <- unique(ind[[1]])
-        tabla$Variable <- y[i]
-        model_i <-                             # Crea el modelo de cada especie para la posterior comparación
-          lm(formula(paste(y[i], paste(
-            x, collapse = "+"
-          ), sep = " ~ ")), data = ind)
-        
-        tabla$Trend <- model_i$coefficients[[2]]
-        tabla$t <- summary(model_i)$coefficients[2, 3]
-        tabla$p <- summary(model_i)$coefficients[2, 4]
-        tabla$P95_max <-  confint(model_i, "Año_Mes", level = .95)[, 2]
-        tabla$P95_min <-  confint(model_i, "Año_Mes", level = .95)[, 1]
-        
-        
-        
-        
-        # Metodo 2  
-        # Crear un modelo incroporando la interación de la pendiente general con la de la especie Variable independiente*Año_Mes
-        # el coeficiente indica que la pendiente d ela especie es mayor o menor que la pendiente del conjunto de datos.
-        # Tambien observamos el pvalor para ver si es significativo (inf a 0,05 son pendientes diferentes)
-        
-        
-        gen <- Data %>%
-          mutate(group = "g")
-        
-        dat <- rbind(gen,ind)
-        
-        
-        model_int = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
-          x,"*group", collapse = "+"
-        ), sep = " ~ ")), data = dat)
-        
-        
-        
-        
-        tabla$Dif_pvalue <- summary(model_int)$coefficients[4,4]
-        
-        f <- anova(model_int)
-        
-        tabla$Dif_df <- paste0("1 - ", f$Df[4])
-        tabla$Dif_F <- f$`F value`[3]
-        
-        tabla_ind <- rbind(tabla_ind, tabla)
-      }, error = function(e) {
-        cat(
-          paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"),
-          conditionMessage(e),
-          "\n"
-        )
-      })
-    }
-    return(tabla_ind)
-  } else {
-    print(paste0("Data for ", ind[1, 1], " specie are insufficient"))
-    return(NULL)
-  }
-}
-
-# Detén el backend de foreach
-stopImplicitCluster()
-
-# Combina los resultados si es necesario
-resultados <- do.call(rbind, resultados)
-
-
-
 tic()
-for(n in 1:10){ # Bucle para actuar sobre cada una de las especies
-  ind <- Data %>% 
-    filter(species == spp[n]) %>%
-    mutate(group = "i")              # Filtra la especie 
-  
-  if (nrow(ind) > 50) {                               # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
-    for(i in 1:length(y)){                 # bucle para cada una de las variables independientes
-      tryCatch({                                      # Implementa código que debe ejecutarse cuando se produce la condición de error
-        tabla <- data.frame(                          # Crea tabla vacia para despues unificar a tabla de resultados
-          "Spp" = NA,                                 
-          "Variable" = NA,
-          "Trend" = NA,
-          "t" = NA,
-          "p" = NA,
-          "P95_max" = NA,
-          "P95_min" = NA,
-          "Dif_pvalue" = NA,
-          "Dif_df" = NA,
-          "Dif_F" = NA
-        )
-        # General
-        model_g = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
-          x, collapse = "+"
-        ), sep = " ~ ")), data = Data)
-        
-        tabla$Spp <- unique(ind[[1]])
-        tabla$Variable <- y[i]
-        model_i <-                             # Crea el modelo de cada especie para la posterior comparación
-          lm(formula(paste(y[i], paste(
-            x, collapse = "+"
-          ), sep = " ~ ")), data = ind)
-        
-        tabla$Trend <- model_i$coefficients[[2]]
-        tabla$t <- summary(model_i)$coefficients[2, 3]
-        tabla$p <- summary(model_i)$coefficients[2, 4]
-        tabla$P95_max <-  confint(model_i, "Año_Mes", level = .95)[, 2]
-        tabla$P95_min <-  confint(model_i, "Año_Mes", level = .95)[, 1]
-        
-        
-        
-        
-        # Metodo 2  
-        # Crear un modelo incroporando la interación de la pendiente general con la de la especie Variable independiente*Año_Mes
-        # el coeficiente indica que la pendiente d ela especie es mayor o menor que la pendiente del conjunto de datos.
-        # Tambien observamos el pvalor para ver si es significativo (inf a 0,05 son pendientes diferentes)
-        
-        
-        gen <- Data %>%
-          mutate(group = "g")
-        
-        dat <- rbind(gen,ind)
-        
-        
-        model_int = lm(formula(paste(y[i], paste(  # Crea de nuevo el modelo general para la posterior comparación
-          x,"*group", collapse = "+"
-        ), sep = " ~ ")), data = dat)
-        
-        
-        
-        
-        tabla$Dif_pvalue <- summary(model_int)$coefficients[4,4]
-        
-        f <- anova(model_int)
-        
-        tabla$Dif_df <- paste0("1 - ", f$Df[4])
-        tabla$Dif_F <- f$`F value`[3]
-        
-        tabla_ind <- rbind(tabla_ind, tabla)  # Unimos tablas
-        
-      }, error = function(e) {                        # Si la función tryChach da error ejecuta esta parte del codigo
-        cat(
-          paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"), # Indica que especie tiene el problema y por qué
-          conditionMessage(e),                                                 
-          "\n"
-        )
-      })
-    }
-  } else{
-    print(paste0("Data for ", ind[1, 1], " specie are insufficient")) # Si en el condicional no hay suficientes registros
-    # para una especie (<50) expresa el mensaje
-  }
+for(i in spp){
+  a <- species_trend(spp, Data, y)
+  tabla_ind <- rbind(tabla_ind, tabla)
 }
-stopCluster(cl)
+
 toc()
 
 ## Significance
 
-
-
 Tabla_sig <-
   tabla_ind %>%
-  select(c(Spp, Variable, Dif_pvalue)) %>% # Selecciono las variables 
-  pivot_wider(names_from = Variable, #cambia la estructura de la tabla
+  select(c(Spp, Variable, Dif_pvalue)) %>% # Selecciona las variables 
+  pivot_wider(names_from = Variable, # Cambia la estructura de la tabla
               values_from = Dif_pvalue) %>%
-  mutate(# Añade columna de spatial y le asigna una categoría segun los pvalues de latitud, longitud o elevacion
+  mutate(# Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
     Spatial =
       case_when(
-        Lat <= 0.01 | Long <= 0.01  ~ "SA"
+        Lat <= 0.01 | Long <= 0.01  ~ "SA",
         TRUE ~ "SC"))  %>%
   mutate(# Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin
     Thermal =
       case_when(
         TMIN <= 0.01 | TMAX <= 0.01 ~ " TT",
-        TRUE ~ "TA")) %>%
+        TRUE ~ "TC")) %>%
   left_join(# Une el numero de registros obtenidos del conjunto global de datos
     Data %>%
-      group_by(Especie) %>%
+      group_by(species) %>%
       summarise(Registros = n()),
-    by = c("Spp" = "Especie")) 
+    by = c("Spp" = "species")) 
 
 
 # Crea una tabla resumen y calcula el porcentaje de las estrategias
