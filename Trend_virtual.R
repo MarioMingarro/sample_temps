@@ -118,7 +118,6 @@ for (n in 1:length(spp)){
               "Dif_df" = NA,
               "Dif_F" = NA
             )
-          # General
           
           # Crea de nuevo el modelo general utilizando todos los datos
           model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
@@ -128,16 +127,14 @@ for (n in 1:length(spp)){
           # Crea el modelo de cada especie para la posterior comparación, De aqui servirán los datos de tendencias
           model_i <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = ind)
           
+          # Añade resultados en la tabla
           tabla$Trend <- model_i$coefficients[[2]]
           tabla$t <- summary(model_i)$coefficients[2, 3]
           tabla$p <- summary(model_i)$coefficients[2, 4]
-          tabla$P95_max <-
-            confint(model_i, "Año_Mes", level = .95)[, 2]
-          tabla$P95_min <-
-            confint(model_i, "Año_Mes", level = .95)[, 1]
+          tabla$P95_max <- confint(model_i, "Año_Mes", level = .95)[, 2]
+          tabla$P95_min <- confint(model_i, "Año_Mes", level = .95)[, 1]
           
           # Crea de nuevo el modelo de comparación y ver si existe diferencias acxorde al grupo
-          
           model_int <- lm(formula(paste(y[i], paste(
             x, "*group", collapse = "+"
           ), sep = " ~ ")), data = dat)
@@ -166,10 +163,6 @@ for (n in 1:length(spp)){
     }
   }
 toc()
-
-
-spp <- spp[1:2]
-
 
 ## Significance
 
