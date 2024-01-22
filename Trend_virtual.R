@@ -4,8 +4,9 @@ library(writexl)
 library(foreach)
 library(doParallel)
 library(tictoc)
+library(jtools)
 
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.01.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
 
@@ -48,8 +49,13 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
   tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2] # Intervalo de confianza max del 95%
   tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
   tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una d elas tablas individuales
+  print(summ(model_g))
+  plot(model_g, 2)
 }
+
+
 rm(tabla, model_g, i)
+
 
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para cada una de las especies
 # Además comparamos la tendencia de cada una de las especies con la tendencia del conjunto de datos
@@ -58,7 +64,7 @@ rm(tabla, model_g, i)
 
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 
-spp <- spp[1:50]
+spp <- spp[1:10]
 
 # Creamos funcion
 #species_trend <-
@@ -81,14 +87,21 @@ tabla_ind <- tabla_ind[-1,]
 tic()
 for (n in 1:length(spp)){
     # Bucle para actuar sobre cada una de las especies
+  
+  # Filtra la especie  
     ind <- Data %>%
       filter(species == spp[n]) %>%
-      mutate(group = "i")                             # Filtra la especie
+      mutate(group = "i")
+    
+    gen <- Data %>%
+      mutate(group = "g")
+    
+    dat <- rbind(gen, ind)
     
     if (nrow(ind) > 50) {
       # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
       for (i in 1:length(y)) {
-        # Bbucle para cada una de las variables independientes
+        # Bucle para cada una de las variables independientes
         tryCatch({
           # Implementa código que debe ejecutarse cuando se produce la condición de error
           tabla <-
@@ -106,18 +119,14 @@ for (n in 1:length(spp)){
               "Dif_F" = NA
             )
           # General
-          model_g = lm(formula(paste(y[i], paste(
-            # Crea de nuevo el modelo general para la posterior comparación
-            x, collapse = "+"
-          ), sep = " ~ ")), data = Data)
           
+          # Crea de nuevo el modelo general utilizando todos los datos
+          model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
           tabla$Spp <- unique(ind[[1]])
           tabla$Variable <- y[i]
-          model_i <-
-            # Crea el modelo de cada especie para la posterior comparación
-            lm(formula(paste(y[i], paste(
-              x, collapse = "+"
-            ), sep = " ~ ")), data = ind)
+          
+          # Crea el modelo de cada especie para la posterior comparación, De aqui servirán los datos de tendencias
+          model_i <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = ind)
           
           tabla$Trend <- model_i$coefficients[[2]]
           tabla$t <- summary(model_i)$coefficients[2, 3]
@@ -127,15 +136,11 @@ for (n in 1:length(spp)){
           tabla$P95_min <-
             confint(model_i, "Año_Mes", level = .95)[, 1]
           
-          gen <- Data %>%
-            mutate(group = "g")
+          # Crea de nuevo el modelo de comparación y ver si existe diferencias acxorde al grupo
           
-          dat <- rbind(gen, ind)
-          
-          model_int = lm(formula(paste(
-            y[i], paste(# Crea de nuevo el modelo general para la posterior comparación
-              x, "*group", collapse = "+"), sep = " ~ "
-          )), data = dat)
+          model_int <- lm(formula(paste(y[i], paste(
+            x, "*group", collapse = "+"
+          ), sep = " ~ ")), data = dat)
           
           tabla$Dif_pvalue <- summary(model_int)$coefficients[4, 4]
           
@@ -144,7 +149,6 @@ for (n in 1:length(spp)){
           tabla$Dif_df <- paste0("1 - ", f$Df[4])
           tabla$Dif_F <- f$`F value`[3]
           tabla_ind <- rbind(tabla_ind, tabla) 
-          #return(tabla)  # Unimos tablas
           
         }, error = function(e) {
           # Si la función tryChach da error ejecuta esta parte del codigo
@@ -162,55 +166,39 @@ for (n in 1:length(spp)){
     }
   }
 toc()
+
+
 spp <- spp[1:2]
 
-# Tabla vacía para guardar los resultados 
-tabla_ind <- data.frame(                         
-  "Spp" = NA,                                 
-  "Variable" = NA,
-  "Trend" = NA,
-  "t" = NA,
-  "p" = NA,
-  "P95_max" = NA,
-  "P95_min" = NA,
-  "Dif_pvalue" = NA,
-  "Dif_df" = NA,
-  "Dif_F" = NA
-)
-
-tabla_ind <- tabla_ind[-1,]
-
-tic()
-for(i in spp){
-  tabla_ind <- rbind(tabla_ind, species_trend(spp, Data, y))
-}
-
-toc()
 
 ## Significance
 
 Tabla_sig <-
   tabla_ind %>%
-  select(c(Spp, Variable, Dif_pvalue)) %>% # Selecciona las variables 
-  pivot_wider(names_from = Variable, # Cambia la estructura de la tabla
+  # Selecciona las variables
+  select(c(Spp, Variable, Dif_pvalue)) %>%  
+    # Cambia la estructura de la tabla
+  pivot_wider(names_from = Variable, 
               values_from = Dif_pvalue) %>%
-  mutate(# Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
+  # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
+  mutate(
     Spatial =
       case_when(
         Lat <= 0.01 | Long <= 0.01  ~ "SA",
         TRUE ~ "SC"))  %>%
-  mutate(# Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin
+  # Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin
+  mutate(
     Thermal =
       case_when(
         TMIN <= 0.01 | TMAX <= 0.01 ~ " TT",
         TRUE ~ "TC")) %>%
-  left_join(# Une el numero de registros obtenidos del conjunto global de datos
+  # Une el numero de registros obtenidos del conjunto global de datos
+  left_join(
     Data %>%
       group_by(species) %>%
       summarise(Registros = n()),
     by = c("Spp" = "species")) 
 
-writexl::write_xlsx(Tabla_sig, "./sig.xlsx")
 # Crea una tabla resumen y calcula el porcentaje de las estrategias
 Tabla_res <- Tabla_sig %>% 
   group_by(Spatial,Thermal) %>% 
