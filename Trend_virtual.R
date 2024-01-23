@@ -53,6 +53,7 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
   plot(model_g, 2)
 }
 
+write.csv2(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_general_02.csv")
 
 rm(tabla, model_g, i)
 
