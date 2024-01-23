@@ -163,6 +163,9 @@ for (n in 1:length(spp)){
     }
   }
 toc()
+#9873.55 sec elapsed
+
+write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
 
 ## Significance
 
@@ -192,6 +195,7 @@ Tabla_sig <-
       summarise(Registros = n()),
     by = c("Spp" = "species")) 
 
+write.csv2(Tabla_sig, "B:/A_JORGE/A_VIRTUALES/RESULT/Significancia_ssp_02.csv")
 # Crea una tabla resumen y calcula el porcentaje de las estrategias
 Tabla_res <- Tabla_sig %>% 
   group_by(Spatial,Thermal) %>% 
