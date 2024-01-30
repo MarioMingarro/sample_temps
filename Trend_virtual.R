@@ -52,9 +52,12 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadísticas de todas
   tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
   tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una de las tablas individuales
 }
-plot(acc$l, acc$spatial_acc)
+plot(Data$Año_Mes, Data$TMIN)
+ggplot(data = Data,aes(Año_Mes, TMIN))+
+  geom_point()+
+  geom_smooth(method = lm, se = FALSE)
 
-#writexl::write_xlsx(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_general_100002.xlsx")
+writexl::write_xlsx(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_general_100002.xlsx")
 
 rm(tabla, model_g, i)
 
