@@ -6,19 +6,21 @@ library(doParallel)
 library(tictoc)
 library(jtools)
 
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
-Data$Año_Mes <- Data$month * 0.075
-Data$Año_Mes <- Data$year + Data$Año_Mes
+Data_1 <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
+Data_1$Año_Mes <- Data_1$month * 0.075
+Data_1$Año_Mes <- Data_1$year + Data_1$Año_Mes
 
-colnames(Data) <- c("species","year","month","Lat","Long","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
-x <- "Año_Mes" # Variable dependiente
-y <- c("Lat", "Long", "TMAX", "TMIN") # Variables independiente
+colnames(Data_1) <- c("species","year","month","Lat","Long","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
 
+x <- "Año_Mes" # Variable independiente
+y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
+
+Data <- Data_1
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para el set global de datos
 
 # All species -----
 
-# Creamos tabla vacia para almacenar los resultados
+# Creamos tabla vacía para almacenar los resultados
 tabla_general <- data.frame(
   "Variable"= character(),
   "Trend" = numeric(),
@@ -29,9 +31,9 @@ tabla_general <- data.frame(
 )
 
 
-for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas las variables independientes
+for (i in 1:length(y)) {        # Bucle para calcular las estadísticas de todas las variables independientes
   tabla <- data.frame(          # Tabla vacía donde se guardan resultados de cada variable independiente 
-    "Variable" = NA,            # para despues unir a la tabla general
+    "Variable" = NA,            # para después unir a la tabla general
     "Trend" = NA,
     "t" = NA,
     "p" = NA,
@@ -48,12 +50,11 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadisticas de todas 
   tabla$p <- summary(model_g)$coefficients[2, 4] # p del modelo
   tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2] # Intervalo de confianza max del 95%
   tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
-  tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una d elas tablas individuales
-  print(summ(model_g))
-  plot(model_g, 2)
+  tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una de las tablas individuales
 }
+plot(acc$l, acc$spatial_acc)
 
-write.csv2(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_general_02.csv")
+#writexl::write_xlsx(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_general_100002.xlsx")
 
 rm(tabla, model_g, i)
 
@@ -62,10 +63,15 @@ rm(tabla, model_g, i)
 # Además comparamos la tendencia de cada una de las especies con la tendencia del conjunto de datos
 
 # Indivudual species ----
+acc <- data.frame(n = numeric(0), 
+                  Thermal_acc = numeric(0),
+                  Spatial_acc = numeric(0))
 
+for (l in seq(10000, 1000000, by = 10000)) {
+  Data <- Data_1[1:l,]
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 
-spp <- spp[1:10]
+#spp <- spp[1:10]
 
 # Creamos funcion
 #species_trend <-
@@ -166,28 +172,33 @@ for (n in 1:length(spp)){
 toc()
 #9873.55 sec elapsed
 
-write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
+#write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
+tabla_ind <- read.csv2("B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
 
 ## Significance
 
 Tabla_sig <-
   tabla_ind %>%
   # Selecciona las variables
-  select(c(Spp, Variable, Dif_pvalue)) %>%  
+  select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
     # Cambia la estructura de la tabla
   pivot_wider(names_from = Variable, 
-              values_from = Dif_pvalue) %>%
+              values_from = c(Trend,Dif_pvalue)) %>%
   # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
   mutate(
     Spatial =
       case_when(
-        Lat <= 0.01 | Long <= 0.01  ~ "SA",
+        Dif_pvalue_Lat <= 0.01 & Trend_Lat > 0 ~ "SA",
+        Dif_pvalue_Lat <= 0.01 & Trend_Lat < 0 ~ "SD",
         TRUE ~ "SC"))  %>%
-  # Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin
+  # Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin y de si las tendencias son positivas
   mutate(
     Thermal =
       case_when(
-        TMIN <= 0.01 | TMAX <= 0.01 ~ " TT",
+        Dif_pvalue_TMIN <= 0.01 & Trend_Lat < 0 ~ "TA",
+        Dif_pvalue_TMIN <= 0.01 & Trend_Lat > 0 ~ "TT",
+        Dif_pvalue_TMAX <= 0.01 & Trend_Lat < 0 ~ "TA",
+        Dif_pvalue_TMAX <= 0.01 & Trend_Lat > 0 ~ "TT",
         TRUE ~ "TC")) %>%
   # Une el numero de registros obtenidos del conjunto global de datos
   left_join(
@@ -196,7 +207,38 @@ Tabla_sig <-
       summarise(Registros = n()),
     by = c("Spp" = "species")) 
 
-write.csv2(Tabla_sig, "B:/A_JORGE/A_VIRTUALES/RESULT/Significancia_ssp_02.csv")
+#Resultados
+
+Tabla_sig <- Tabla_sig %>% 
+  separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE)
+Tabla_sig <- Tabla_sig %>% 
+  subset(select = -c(A,B))
+
+Tabla_sig[Tabla_sig == "TA"] <- "TT"
+Tabla_sig[Tabla_sig == "SD"] <- "SA"
+
+a <- prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal))
+b <- prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial))
+
+Thermal_acc <- 0
+p <- length(a)/(0.5*length(a))
+for (k in 1:p) {
+  Thermal_acc <- Thermal_acc + a[k, k]
+}
+spatial_acc <- 0
+for (k in 1:2) {
+  spatial_acc <- spatial_acc + b[k, k]
+}
+d <- cbind(Thermal_acc, spatial_acc)
+acc <- rbind(acc, d)
+}
+
+
+
+
+
+spatial_acc=1
+writexl::write_xlsx(Tabla_sig, "B:/A_JORGE/A_VIRTUALES/RESULT/Significancia_ssp_02.xlsx")
 # Crea una tabla resumen y calcula el porcentaje de las estrategias
 Tabla_res <- Tabla_sig %>% 
   group_by(Spatial,Thermal) %>% 
