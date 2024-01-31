@@ -6,14 +6,6 @@ library(doParallel)
 library(tictoc)
 library(jtools)
 
-options(digits=1)
-
-install.packages("Rmpfr")
-library(Rmpfr)
-
-# Establecer la precisión a 100 bits (o cualquier valor deseado)
-precision_bits <- 16
-options(mpfr.precision = precision_bits)
 
 
 Data_1 <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
