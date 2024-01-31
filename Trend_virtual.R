@@ -6,6 +6,16 @@ library(doParallel)
 library(tictoc)
 library(jtools)
 
+options(digits=1)
+
+install.packages("Rmpfr")
+library(Rmpfr)
+
+# Establecer la precisión a 100 bits (o cualquier valor deseado)
+precision_bits <- 16
+options(mpfr.precision = precision_bits)
+
+
 Data_1 <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
 Data_1$Año_Mes <- Data_1$month * 0.075
 Data_1$Año_Mes <- Data_1$year + Data_1$Año_Mes
@@ -15,8 +25,25 @@ colnames(Data_1) <- c("species","year","month","Lat","Long","TMAX","TMIN","therm
 x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 
+Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
+
 Data <- Data_1
+s <- spp[1:4]
+data_test <- filter(Data, Data$species %in% s)
+write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/data_test.csv")
+Data <- data_test
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para el set global de datos
+Año_Mes
+TMAX
+attach(Data)
+hist(Año_Mes)
+qqnorm(Año_Mes)
+qqline(Año_Mes)
+summary(lm(TMAX~Año_Mes, Data))
+library(car)
+Anova(lm(round(TMAX,1)~Año_Mes),test="F")
+plot(Año_Mes,TMAX)
+abline(-0.2506725  ,  0.0004117)
 
 # All species -----
 
@@ -45,17 +72,21 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadísticas de todas
                               paste(x, collapse = "+"),
                               sep = " ~ ")), 
                 data = Data)
-  tabla$Trend <- model_g$coefficients[[2]] # Tendencia
-  tabla$t <- summary(model_g)$coefficients[2, 3] # t del modelo
-  tabla$p <- summary(model_g)$coefficients[2, 4] # p del modelo
-  tabla$P95_max <-  confint(model_g, "Año_Mes", level = .95)[, 2] # Intervalo de confianza max del 95%
-  tabla$P95_min <-  confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
+  tabla$Trend <- round(model_g$coefficients[[2]],4) # Tendencia
+  tabla$t <- round(summary(model_g)$coefficients[2, 3],4) # t del modelo
+  tabla$p <- round(summary(model_g)$coefficients[2, 4],4) # p del modelo
+  tabla$P95_max <-  round(confint(model_g, "Año_Mes", level = .95)[, 2],4) # Intervalo de confianza max del 95%
+  tabla$P95_min <-  round(confint(model_g, "Año_Mes", level = .95)[, 1],4) # Intervalo de confianza min del 95%
   tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una de las tablas individuales
 }
-plot(Data$Año_Mes, Data$TMIN)
-ggplot(data = Data,aes(Año_Mes, TMIN))+
+
+plot(Data$Año_Mes, Data$Lat)
+ggplot(data = Data,aes(Año_Mes, Lat))+
   geom_point()+
-  geom_smooth(method = lm, se = FALSE)
+  geom_smooth(method = lm)+
+  labs(x = "Date", y = "Lat")
+
+unique(Data$year)
 
 writexl::write_xlsx(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_general_100002.xlsx")
 
@@ -139,22 +170,22 @@ for (n in 1:length(spp)){
           
           # Añade resultados en la tabla
           tabla$Trend <- model_i$coefficients[[2]]
-          tabla$t <- summary(model_i)$coefficients[2, 3]
-          tabla$p <- summary(model_i)$coefficients[2, 4]
-          tabla$P95_max <- confint(model_i, "Año_Mes", level = .95)[, 2]
-          tabla$P95_min <- confint(model_i, "Año_Mes", level = .95)[, 1]
+          tabla$t <- round(summary(model_i)$coefficients[2, 3],4)
+          tabla$p <- round(summary(model_i)$coefficients[2, 4],4)
+          tabla$P95_max <- round(confint(model_i, "Año_Mes", level = .95)[, 2],4)
+          tabla$P95_min <- round(confint(model_i, "Año_Mes", level = .95)[, 1],4)
           
           # Crea de nuevo el modelo de comparación y ver si existe diferencias acxorde al grupo
           model_int <- lm(formula(paste(y[i], paste(
             x, "*group", collapse = "+"
           ), sep = " ~ ")), data = dat)
           
-          tabla$Dif_pvalue <- summary(model_int)$coefficients[4, 4]
+          tabla$Dif_pvalue <- round(summary(model_int)$coefficients[4, 4],4)
           
           f <- anova(model_int)
           
           tabla$Dif_df <- paste0("1 - ", f$Df[4])
-          tabla$Dif_F <- f$`F value`[3]
+          tabla$Dif_F <- round(f$`F value`[3],4)
           tabla_ind <- rbind(tabla_ind, tabla) 
           
         }, error = function(e) {
@@ -175,10 +206,21 @@ for (n in 1:length(spp)){
 toc()
 #9873.55 sec elapsed
 
-#write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
+write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02_3dec.csv")
 tabla_ind <- read.csv2("B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
+tabla_ind[,3] <- round(tabla_ind[,3],4)
 
 ## Significance
+
+#   SIG	TREND
+#TT	***	+
+#TA	***	-
+#TC	
+#  
+#SA	***	+
+#SD	***	-
+#SC	
+  
 
 Tabla_sig <-
   tabla_ind %>%
@@ -217,11 +259,10 @@ Tabla_sig <- Tabla_sig %>%
 Tabla_sig <- Tabla_sig %>% 
   subset(select = -c(A,B))
 
-Tabla_sig[Tabla_sig == "TA"] <- "TT"
-Tabla_sig[Tabla_sig == "SD"] <- "SA"
 
-a <- prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal))
-b <- prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial))
+
+a <- round(prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal)),3)
+b <- round(prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial)),3)
 
 Thermal_acc <- 0
 p <- length(a)/(0.5*length(a))
