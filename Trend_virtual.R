@@ -17,25 +17,48 @@ colnames(Data_1) <- c("species","year","month","Lat","Long","TMAX","TMIN","therm
 x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 
+Data <- Data_1
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
-Data <- Data_1
-s <- spp[1:4]
+
+## TEST
+data_test <- filter(Data, Data$spatial_O == "SD")
+
+
+s <- "virtualsp_SD_TA_39"
 data_test <- filter(Data, Data$species %in% s)
-write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/data_test.csv")
+write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/data_test_1spp.csv")
 Data <- data_test
+
+p75_lat <- quantile(Data$Lat, 0.75)
+p15_lat <- quantile(Data$Lat, 0.15)
+
+Data <- Data %>% filter(Lat <= p75_lat) %>% filter(Lat <= p15_lat)
+
+ggplot(data = Data,aes(Año_Mes, Lat))+
+  geom_point()+
+  geom_smooth(method = lm)+
+  labs(x = "Date", y = "Lat")
+
+
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para el set global de datos
+Data %>%
+  group_by(species) %>%
+  summarise(n = n())
+  
 Año_Mes
 TMAX
 attach(Data)
 hist(Año_Mes)
 qqnorm(Año_Mes)
 qqline(Año_Mes)
-summary(lm(TMAX~Año_Mes, Data))
+summary(lm(Lat~Año_Mes, data_test))
 library(car)
 Anova(lm(round(TMAX,1)~Año_Mes),test="F")
 plot(Año_Mes,TMAX)
 abline(-0.2506725  ,  0.0004117)
+
+Data <- data_test
 
 # All species -----
 
@@ -199,8 +222,8 @@ toc()
 #9873.55 sec elapsed
 
 write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02_3dec.csv")
-tabla_ind <- read.csv2("B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02.csv")
-tabla_ind[,3] <- round(tabla_ind[,3],4)
+tabla_ind <- read.csv2("B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02_3dec.csv")
+tabla_ind[,4] <- round(tabla_ind[,4],4)
 
 ## Significance
 
@@ -270,7 +293,11 @@ acc <- rbind(acc, d)
 }
 
 
-
+tabla_proporciones <- Tabla_sig %>%
+  mutate(Tendencia = ifelse(Trend_Lat > 0, "Positiva", "Negativa")) %>%
+  select(Tendencia, Spatial_G) %>%
+  group_by(Tendencia, Spatial_G) %>%
+  summarise(N = n())
 
 
 spatial_acc=1
