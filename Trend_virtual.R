@@ -6,39 +6,57 @@ library(doParallel)
 library(tictoc)
 library(jtools)
 
+#   SIG	TREND
+#TT	***	+
+#TA	***	-
+#TC	
+#  
+#SA	***	+
+#SD	***	-
+#SC	
 
+# Data ----
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/occurrencias_virtualsp_SA_TA.RDS") # Cargamos datos
+Data$Año_Mes <- Data$month * 0.075
+Data$Año_Mes <- Data$year + Data$Año_Mes
 
-Data_1 <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
-Data_1$Año_Mes <- Data_1$month * 0.075
-Data_1$Año_Mes <- Data_1$year + Data_1$Año_Mes
-
-colnames(Data_1) <- c("species","year","month","Lat","Long","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
+colnames(Data) <- c("species","year","month","Lat","Long","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
 
 x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 
-Data <- Data_1
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
 
 ## TEST
-data_test <- filter(Data, Data$spatial_O == "SD")
-
-
-s <- "virtualsp_SD_TA_39"
+spp <- unique(Data$species)
+s <- spp[3]
 data_test <- filter(Data, Data$species %in% s)
-write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/data_test_1spp.csv")
-Data <- data_test
+write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/virtualsp_SA_TA_14.csv")
+data_test <- read.csv2( "B:/A_JORGE/A_VIRTUALES/virtualsp_SD_TA_104.csv")
+lm(Lat~Año_Mes, data = data_test)
 
-p75_lat <- quantile(Data$Lat, 0.75)
-p15_lat <- quantile(Data$Lat, 0.15)
+ggplot(data = data_test)+
+  geom_point(aes(Año_Mes, Lat))+
+  geom_smooth(aes(Año_Mes, TMAX), method = lm, color = "red")
 
-Data <- Data %>% filter(Lat <= p75_lat) %>% filter(Lat <= p15_lat)
 
-ggplot(data = Data,aes(Año_Mes, Lat))+
-  geom_point()+
-  geom_smooth(method = lm)+
-  labs(x = "Date", y = "Lat")
+p10_lat <- quantile(Data$Lat, 0.10)
+p90_lat <- quantile(Data$Lat, 0.90)
+
+Data_10 <- Data %>% filter(Lat <= p10_lat)
+Data_90 <- Data %>% filter(Lat <= p90_lat)
+
+lm(Lat~Año_Mes, data = Data)
+lm(Lat~Año_Mes, data = Data_90)
+## PLOT----
+mid <- mean(data_test$year)
+ggplot(data_test, aes(Long, Lat))+
+  geom_point(aes(col = year))+
+  scale_color_gradient2(midpoint = mid, low = "blue", mid = "white",
+                        high = "red", space = "Lab") +
+  labs(title ="SA")
+
 
 
 # Generamos la tabla con las tendencias y otras medidas de las tendencias para el set global de datos
@@ -225,7 +243,7 @@ write.csv2(tabla_ind, "B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02_3dec.csv")
 tabla_ind <- read.csv2("B:/A_JORGE/A_VIRTUALES/RESULT/Trend_ssp_02_3dec.csv")
 tabla_ind[,4] <- round(tabla_ind[,4],4)
 
-## Significance
+## Significance ----
 
 #   SIG	TREND
 #TT	***	+
