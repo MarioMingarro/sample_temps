@@ -33,7 +33,7 @@ spp <- unique(Data$species)
 s <- spp[3]
 data_test <- filter(Data, Data$species %in% s)
 write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/virtualsp_SA_TA_14.csv")
-data_test <- read.csv2( "B:/A_JORGE/A_VIRTUALES/virtualsp_SD_TA_104.csv")
+Data <- read.csv( "B:/A_JORGE/A_VIRTUALES/prueba.csv")
 lm(Lat~Año_Mes, data = data_test)
 
 ggplot(data = data_test)+
@@ -105,15 +105,16 @@ for (i in 1:length(y)) {        # Bucle para calcular las estadísticas de todas
                               paste(x, collapse = "+"),
                               sep = " ~ ")), 
                 data = Data)
-  tabla$Trend <- round(model_g$coefficients[[2]],4) # Tendencia
+  tabla$Trend <- round(model_g$coefficients[[2]],2) # Tendencia
   tabla$t <- round(summary(model_g)$coefficients[2, 3],4) # t del modelo
   tabla$p <- round(summary(model_g)$coefficients[2, 4],4) # p del modelo
-  tabla$P95_max <-  round(confint(model_g, "Año_Mes", level = .95)[, 2],4) # Intervalo de confianza max del 95%
-  tabla$P95_min <-  round(confint(model_g, "Año_Mes", level = .95)[, 1],4) # Intervalo de confianza min del 95%
+  tabla$P95_max <-  round(confint(model_g, "Año_Mes", level = .95)[, 2],2) # Intervalo de confianza max del 95%
+  tabla$P95_min <-  round(confint(model_g, "Año_Mes", level = .95)[, 1],2) # Intervalo de confianza min del 95%
   tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una de las tablas individuales
 }
 
 plot(Data$Año_Mes, Data$Lat)
+
 ggplot(data = Data,aes(Año_Mes, Lat))+
   geom_point()+
   geom_smooth(method = lm)+
