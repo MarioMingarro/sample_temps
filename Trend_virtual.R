@@ -16,7 +16,9 @@ library(jtools)
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/occurrencias_virtualsp_SA_TA.RDS") # Cargamos datos
+Data <- readRDS("T:/GITHUB_REP/sample_temps/occurrencias_virtualsp_SD_TA.RDS") # Cargamos datos
+Data <- readRDS("T:/GITHUB_REP/sample_temps/SD_TT_ocs_percent_0.02.RDS") ##gradient
+
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
 
@@ -28,12 +30,22 @@ y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
 
+
 ## TEST
+
+
+
 spp <- unique(Data$species)
-s <- spp[3]
+s <- spp[c(3,6,11)]
 data_test <- filter(Data, Data$species %in% s)
+
+library(quantreg)
+mr <- rq(Lat ~ Año_Mes, data = data_test, tau = c(.10,.5,.9))
+summary(mr)
+
+
 write.csv2(data_test, "B:/A_JORGE/A_VIRTUALES/virtualsp_SA_TA_14.csv")
-Data <- read.csv( "B:/A_JORGE/A_VIRTUALES/prueba.csv")
+Data <- read.csv( "T:/GITHUB_REP/sample_temps/prueba.csv")
 lm(Lat~Año_Mes, data = data_test)
 
 ggplot(data = data_test)+
@@ -152,9 +164,8 @@ spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
       "p" = NA,
       "P95_max" = NA,
       "P95_min" = NA,
-      "Dif_pvalue" = NA,
-      "Dif_df" = NA,
-      "Dif_F" = NA
+      "Dif_t" = NA,
+      "Dif_pvalue" = NA
     )
 tabla_ind <- tabla_ind[-1,]
 
@@ -189,14 +200,13 @@ for (n in 1:length(spp)){
               "p" = NA,
               "P95_max" = NA,
               "P95_min" = NA,
-              "Dif_pvalue" = NA,
-              "Dif_df" = NA,
-              "Dif_F" = NA
+              "Dif_t" = NA,
+              "Dif_pvalue" = NA
             )
           
           # Crea de nuevo el modelo general utilizando todos los datos
           model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
-          tabla$Spp <- unique(ind[[1]])
+          tabla$Spp <- unique(ind$species)
           tabla$Variable <- y[i]
           
           # Crea el modelo de cada especie para la posterior comparación, De aqui servirán los datos de tendencias
@@ -214,12 +224,10 @@ for (n in 1:length(spp)){
             x, "*group", collapse = "+"
           ), sep = " ~ ")), data = dat)
           
+          
+          tabla$Dif_t <- round(summary(model_int)$coefficients[4, 3],4)
           tabla$Dif_pvalue <- round(summary(model_int)$coefficients[4, 4],4)
           
-          f <- anova(model_int)
-          
-          tabla$Dif_df <- paste0("1 - ", f$Df[4])
-          tabla$Dif_F <- round(f$`F value`[3],4)
           tabla_ind <- rbind(tabla_ind, tabla) 
           
         }, error = function(e) {
@@ -259,7 +267,7 @@ tabla_ind[,4] <- round(tabla_ind[,4],4)
 Tabla_sig <-
   tabla_ind %>%
   # Selecciona las variables
-  select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
+  dplyr::select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
     # Cambia la estructura de la tabla
   pivot_wider(names_from = Variable, 
               values_from = c(Trend,Dif_pvalue)) %>%
@@ -305,7 +313,7 @@ for (k in 1:p) {
 }
 spatial_acc <- 0
 for (k in 1:2) {
-  spatial_acc <- spatial_acc + b[k, k]
+  spatial_acc <- spatial_acc + b[1, 1]
 }
 d <- cbind(Thermal_acc, spatial_acc)
 acc <- rbind(acc, d)
