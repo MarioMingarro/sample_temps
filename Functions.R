@@ -68,7 +68,6 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
   tic()
   for (n in 1:length(spp)){
     # Bucle para actuar sobre cada una de las especies
-    
     # Filtra la especie  
     ind <- Data %>%
       filter(species == spp[n]) %>%
@@ -100,7 +99,7 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
             )
           
           # Crea de nuevo el modelo general utilizando todos los datos
-          model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = Data)
+          model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = gen)
           tabla$Spp <- unique(ind$species)
           tabla$Variable <- y[i]
           
@@ -143,3 +142,130 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
   return(tabla_ind)
 }
 
+
+spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil) {
+  tabla_ind <- data.frame(
+    "Percentil" = NA,
+    "Spp" = NA,
+    "Variable" = NA,
+    "Trend" = NA,
+    "t" = NA,
+    "p" = NA,
+    "P95_max" = NA,
+    "P95_min" = NA,
+    "Dif_t" = NA,
+    "Dif_pvalue" = NA)
+  
+  tabla_ind <- tabla_ind[-1,]
+  
+  
+  # Bucle para calcular las tendencias de cada una de las especies
+  for (n in 1:length(spp)){
+    # Bucle para actuar sobre cada una de las especies
+    # Filtra la especie  
+    
+    ind <- Data %>%
+      filter(species == spp[n]) %>%
+      mutate(group = "i")
+    
+    pi <- quantile(ind$Lat, percentil)
+    
+    ## SUSTITUIR ELIF
+    if (percentil = 50) {
+      ind <- ind %>% 
+        filter(Lat <= pi+5)%>% 
+        filter(Lat >= pi-5)
+    }else{
+    }
+    
+    pi <- quantile(ind$Lat, percentil)
+    
+    if (percentil < 50) {
+      ind <- ind %>% 
+        filter(Lat <= pi)
+    }else{
+      ind <- ind %>% 
+        filter(Lat >= pi)
+      }
+    
+    gen <- Data %>%
+      mutate(group = "g")
+    
+    pg <- quantile(gen$Lat, percentil)
+    
+    if (percentil < 50) {
+      gen <- gen %>% 
+        filter(Lat <= pg)
+    }else{
+      gen <- gen %>% 
+        filter(Lat >= pg)
+    }
+    
+   
+    dat <- rbind(gen, ind)
+    
+    if (nrow(ind) > umbral) {
+      # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
+      for (i in 1:length(y)) {
+        # Bucle para cada una de las variables independientes
+        tryCatch({
+          # Implementa código que debe ejecutarse cuando se produce la condición de error
+          tabla <-
+            data.frame(
+              # Crea tabla vacia para despues unificar a tabla de resultados
+              "Percentil" = NA,
+              "Spp" = NA,
+              "Variable" = NA,
+              "Trend" = NA,
+              "t" = NA,
+              "p" = NA,
+              "P95_max" = NA,
+              "P95_min" = NA,
+              "Dif_t" = NA,
+              "Dif_pvalue" = NA
+            )
+          
+          # Crea de nuevo el modelo general utilizando todos los datos
+          model_g <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = gen)
+          tabla$Percentil <- percentil
+          tabla$Spp <- unique(ind$species)
+          tabla$Variable <- y[i]
+          
+          # Crea el modelo de cada especie para la posterior comparación, De aqui servirán los datos de tendencias
+          model_i <- lm(formula(paste(y[i], paste(x, collapse = "+"), sep = " ~ ")), data = ind)
+          
+          # Añade resultados en la tabla
+          tabla$Trend <- model_i$coefficients[[2]]
+          tabla$t <- round(summary(model_i)$coefficients[2, 3],4)
+          tabla$p <- round(summary(model_i)$coefficients[2, 4],4)
+          tabla$P95_max <- round(confint(model_i, "Año_Mes", level = .95)[, 2],4)
+          tabla$P95_min <- round(confint(model_i, "Año_Mes", level = .95)[, 1],4)
+          
+          # Crea de nuevo el modelo de comparación y ver si existe diferencias acxorde al grupo
+          model_int <- lm(formula(paste(y[i], paste(
+            x, "*group", collapse = "+"
+          ), sep = " ~ ")), data = dat)
+          
+          
+          tabla$Dif_t <- round(summary(model_int)$coefficients[4, 3],4)
+          tabla$Dif_pvalue <- round(summary(model_int)$coefficients[4, 4],4)
+          
+          tabla_ind <- rbind(tabla_ind, tabla) 
+          
+        }, error = function(e) {
+          # Si la función tryChach da error ejecuta esta parte del codigo
+          cat(
+            paste0("WARNING: Specie ", ind[1, 1], " variable (", y[i], ") has"),
+            # Indica que especie tiene el problema y por qué
+            conditionMessage(e),
+            "\n"
+          )
+        })
+      }
+    } else{
+      print(paste0("Data for ", ind[1, 1], " specie are insufficient")) # Si en el condicional no hay suficientes registros
+      # para una especie (<50) expresa el mensaje
+    }
+  }
+  return(tabla_ind)
+}

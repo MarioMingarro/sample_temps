@@ -25,6 +25,9 @@ y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
 # Percentil
+
+tabla_ind90 <- spp_trend_percentil(Data, spp, y, umbral = 50, percentil = 0.90)
+
 p10 <- quantile(Data$Lat, 0.10)
 p45 <- quantile(Data$Lat, 0.45)
 p55 <- quantile(Data$Lat, 0.55)
