@@ -13,7 +13,7 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/SD_TT_ocs_percent_0.02.rds") # Cargamos datos
 
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
@@ -24,9 +24,20 @@ x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
+# Percentil
+p10 <- quantile(Data$Lat, 0.10)
+p45 <- quantile(Data$Lat, 0.45)
+p55 <- quantile(Data$Lat, 0.55)
+p90 <- quantile(Data$Lat, 0.90)
+
+Data_10 <- Data %>% filter(Lat <= p10)
+Data_45_55 <- Data %>% 
+  filter(Lat <= p55) %>% 
+  filter(Lat >= p45)
+Data_90 <- Data %>% filter(Lat <= p90)
 
 # All species -----
-tabla_general <- general_trend(Data, y)
+tabla_general <- general_trend(Data_10,y)
 
 # Indivudual species ----
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
@@ -36,20 +47,12 @@ tic()
 tabla_ind <- trend_calc(Data, spp,y, umbral = 50)
 toc()
 
+tabla_ind_10 <- trend_calc(Data_10,spp, y,umbral = 50)
+tabla_ind_90 <- trend_calc(Data_90,spp, y,umbral = 50)
+
 tabla_ind[,4] <- round(tabla_ind[,4],4)
 
 ## Significance ----
-
-#   SIG	TREND
-#TT	***	+
-#TA	***	-
-#TC	
-#  
-#SA	***	+
-#SD	***	-
-#SC	
-  
-
 Tabla_sig <-
   tabla_ind %>%
   # Selecciona las variables
@@ -68,10 +71,10 @@ Tabla_sig <-
   mutate(
     Thermal =
       case_when(
-        Dif_pvalue_TMIN <= 0.01 & Trend_Lat < 0 ~ "TA",
-        Dif_pvalue_TMIN <= 0.01 & Trend_Lat > 0 ~ "TT",
-        Dif_pvalue_TMAX <= 0.01 & Trend_Lat < 0 ~ "TA",
-        Dif_pvalue_TMAX <= 0.01 & Trend_Lat > 0 ~ "TT",
+        Dif_pvalue_TMIN <= 0.01 & Trend_TMIN < 0 ~ "TA",
+        Dif_pvalue_TMIN <= 0.01 & Trend_TMIN > 0 ~ "TT",
+        Dif_pvalue_TMAX <= 0.01 & Trend_TMAX < 0 ~ "TA",
+        Dif_pvalue_TMAX <= 0.01 & Trend_TMAX > 0 ~ "TT",
         TRUE ~ "TC")) %>%
   # Une el numero de registros obtenidos del conjunto global de datos
   left_join(
@@ -79,6 +82,7 @@ Tabla_sig <-
       group_by(species) %>%
       summarise(Registros = n()),
     by = c("Spp" = "species")) 
+
 
 #Resultados
 
@@ -88,10 +92,12 @@ Tabla_sig <- Tabla_sig %>%
   subset(select = -c(A,B))
 
 
-
 a <- round(prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal)),3)
 b <- round(prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial)),3)
 
+---------
+  
+  
 Thermal_acc <- 0
 p <- length(a)/(0.5*length(a))
 for (k in 1:p) {
