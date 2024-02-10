@@ -16,6 +16,7 @@ for(package in packages.to.use) {
 
 # Funciones -----
 
+# general_trend ----
 general_trend <- function(Data, y) {
   tabla_general <- data.frame(
     "Variable" = character(),
@@ -50,7 +51,8 @@ general_trend <- function(Data, y) {
   return(tabla_general)
 }
 
-spp_trend <- function(Data, spp, y, umbral = 50) {
+# spp_trend ----
+spp_trend <- function(Data, spp, y, n_min = 50) {
   tabla_ind <- data.frame(
     "Spp" = NA,
     "Variable" = NA,
@@ -65,7 +67,6 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
   tabla_ind <- tabla_ind[-1,]
   
   # Bucle para calcular las tendencias de cada una de las especies
-  tic()
   for (n in 1:length(spp)){
     # Bucle para actuar sobre cada una de las especies
     # Filtra la especie  
@@ -78,7 +79,7 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
     
     dat <- rbind(gen, ind)
     
-    if (nrow(ind) > umbral) {
+    if (nrow(ind) > n_min) {
       # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
       for (i in 1:length(y)) {
         # Bucle para cada una de las variables independientes
@@ -86,7 +87,7 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
           # Implementa código que debe ejecutarse cuando se produce la condición de error
           tabla <-
             data.frame(
-              # Crea tabla vacia para despues unificar a tabla de resultados
+              # Crea tabla vacía para después unificar a tabla de resultados
               "Spp" = NA,
               "Variable" = NA,
               "Trend" = NA,
@@ -142,8 +143,8 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
   return(tabla_ind)
 }
 
-
-spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil, x) {
+# spp_trend_percentil ----
+spp_trend_percentil <- function(Data, spp, y, n_min =50, percentil, variable) {
   tabla_ind <- data.frame(
     "Percentil" = NA,
     "Spp" = NA,
@@ -158,7 +159,6 @@ spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil, x) {
   
   tabla_ind <- tabla_ind[-1,]
   
-  
   # Bucle para calcular las tendencias de cada una de las especies
   for (n in 1:length(spp)){
     # Bucle para actuar sobre cada una de las especies
@@ -168,43 +168,47 @@ spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil, x) {
       filter(species == spp[n]) %>%
       mutate(group = "i")
     
-    pi <- quantile(ind$Lat, percentil)
-    
-    
-    ## SUSTITUIR ELIF
-    if (percentil == 50) {
+    pi <- quantile(ind[,variable], percentil)
+  
+    if (percentil == .50) {
       ind <- ind %>% 
-        filter(ind[,x] <= pi+5)%>% 
-        filter(ind[,x] >= pi-5)
-    }else if(percentil < 50) {
+        filter(ind[,variable] <= pi+5)%>% 
+        filter(ind[,variable] >= pi-5)
+      print("P45_P55")
+    }else if(percentil < .50) {
       ind <- ind %>% 
-        filter(ind[,x] <= pi)
+        filter(ind[,variable] <= pi)
+      print("P0_P10")
     } else {
       ind <- ind %>% 
-        filter(ind[,x] >= pi)
+        filter(ind[,variable] >= pi)
+      print("P90_P100")
     }
    
     gen <- Data %>%
       mutate(group = "g")
     
-    pg <- quantile(gen$Lat, percentil)
+    pg <- quantile(gen[,variable], percentil)
     
-    if (percentil == 50) {
+    if (percentil == .50) {
       gen <- gen %>% 
-        filter(gen[,x] <= pg+5)%>% 
-        filter(gen[,x] >= pg-5)
-    }else if(percentil < 50) {
+        filter(gen[,variable] <= pg+5)%>% 
+        filter(gen[,variable] >= pg-5)
+      print("P45_P55")
+    }else if(percentil < .50) {
       gen <- gen %>% 
-        filter(gen[,x] <= pg)
+        filter(gen[,variable] <= pg)
+      print("P0_P10")
     } else {
       gen <- gen %>% 
-        filter(gen[,x] >= pg)
+        filter(gen[,variable] >= pg)
+      print("P90_P100")
     }
    
     dat <- rbind(gen, ind)
     
-    if (nrow(ind) > umbral) {
-      # Condicional "SI" para seleccionar aquellas especies con mas de 10 registros
+    if (nrow(ind) > n_min) {
+      # Condicional "SI" para seleccionar aquellas especies con mas de n registros
       for (i in 1:length(y)) {
         # Bucle para cada una de las variables independientes
         tryCatch({

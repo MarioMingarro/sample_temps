@@ -24,20 +24,6 @@ x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
-# Percentil
-
-tabla_ind90 <- spp_trend_percentil(Data, spp, y, umbral = 50, percentil = 0.90)
-
-p10 <- quantile(Data$Lat, 0.10)
-p45 <- quantile(Data$Lat, 0.45)
-p55 <- quantile(Data$Lat, 0.55)
-p90 <- quantile(Data$Lat, 0.90)
-
-Data_10 <- Data %>% filter(Lat <= p10)
-Data_45_55 <- Data %>% 
-  filter(Lat <= p55) %>% 
-  filter(Lat >= p45)
-Data_90 <- Data %>% filter(Lat <= p90)
 
 # All species -----
 tabla_general <- general_trend(Data_10,y)
@@ -47,22 +33,29 @@ spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 spp <- spp[1:10]
 
 tic()
-tabla_ind <- trend_calc(Data, spp,y, umbral = 50)
+tabla_ind <- trend_calc(Data, spp, y, n_min = 50)
 toc()
 
-tabla_ind_10 <- trend_calc(Data_10,spp, y,umbral = 50)
-tabla_ind_90 <- trend_calc(Data_90,spp, y,umbral = 50)
+# Percentil
+#x=5 lat; x=6 Tmax; x=7 Tmin
+y <- "Lat"
+tabla_Lat <- spp_trend_percentil(Data, spp, y, n_min = 50,  percentil = 0.10, variable=5)
+y <- "TMAX"
+tabla_TMAX <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil = 0.10, variable=6)
+y <- "TMIN"
+tabla_TMIN <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil = 0.10, variable=7)
 
+tabla_ind <- rbind(tabla_ind,tabla_Lat,tabla_TMAX,tabla_TMIN)
 tabla_ind[,4] <- round(tabla_ind[,4],4)
 
 ## Significance ----
 Tabla_sig <-
   tabla_ind %>%
   # Selecciona las variables
-  dplyr::select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
+  dplyr::select(c(Spp,Percentil, Trend, Variable, Dif_pvalue)) %>%  
     # Cambia la estructura de la tabla
   pivot_wider(names_from = Variable, 
-              values_from = c(Trend,Dif_pvalue)) %>%
+              values_from = c(Percentil,Trend,Dif_pvalue)) %>%
   # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
   mutate(
     Spatial =
@@ -84,15 +77,10 @@ Tabla_sig <-
     Data %>%
       group_by(species) %>%
       summarise(Registros = n()),
-    by = c("Spp" = "species")) 
-
-
-#Resultados
-
-Tabla_sig <- Tabla_sig %>% 
-  separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE)
-Tabla_sig <- Tabla_sig %>% 
-  subset(select = -c(A,B))
+    by = c("Spp" = "species"))  %>% 
+  separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
+  rename(Percentil= Percentil_Lat) %>% 
+  subset(select = -c(A,B, Percentil_TMAX, Percentil_TMIN))
 
 
 a <- round(prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal)),3)
