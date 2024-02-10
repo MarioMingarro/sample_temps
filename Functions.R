@@ -13,7 +13,7 @@ for(package in packages.to.use) {
   if( ! package %in% rownames(installed.packages()) ) { stop("Error on package instalation") }
   suppressWarnings( library(package, character.only = TRUE) )
 }
-
+rm(packages.to.use,package)
 # Funciones -----
 
 # general_trend ----

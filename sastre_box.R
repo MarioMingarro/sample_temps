@@ -353,14 +353,15 @@ kk <- Data %>%
   summarise(n=n())
 
 spp <- unique(Data$species)
-s <- spp[49]
-
+s <- spp[42]
+virtualsp_SD_TT_140 (SC_TC)47
+virtualsp_SD_TT_141 (SC_TA)42
 
 data_test <- filter(Data, Data$species %in% s)
 
 
 ggplot(data = data_test)+
-  geom_point(aes(Long, Lat, col = Año_Mes))+
+  geom_point(aes(Long, Lat, col = TMIN))+
   scale_color_viridis()+
   labs(title = data_test$species)
 

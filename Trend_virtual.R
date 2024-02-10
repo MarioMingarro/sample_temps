@@ -13,7 +13,7 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/SD_TT_ocs_percent_0.02.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/occurrencias_virtualsp_SC_TT.RDS") # Cargamos datos
 
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
@@ -33,7 +33,7 @@ spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 spp <- spp[1:10]
 
 tic()
-tabla_ind <- trend_calc(Data, spp, y, n_min = 50)
+tabla_ind <- spp_trend(Data, spp, y, n_min = 50)
 toc()
 
 # Percentil
@@ -52,10 +52,10 @@ tabla_ind[,4] <- round(tabla_ind[,4],4)
 Tabla_sig <-
   tabla_ind %>%
   # Selecciona las variables
-  dplyr::select(c(Spp,Percentil, Trend, Variable, Dif_pvalue)) %>%  
+  dplyr::select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
     # Cambia la estructura de la tabla
   pivot_wider(names_from = Variable, 
-              values_from = c(Percentil,Trend,Dif_pvalue)) %>%
+              values_from = c(Trend,Dif_pvalue)) %>%
   # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
   mutate(
     Spatial =
@@ -79,12 +79,11 @@ Tabla_sig <-
       summarise(Registros = n()),
     by = c("Spp" = "species"))  %>% 
   separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
-  rename(Percentil= Percentil_Lat) %>% 
-  subset(select = -c(A,B, Percentil_TMAX, Percentil_TMIN))
+  subset(select = -c(A,B))
 
 
-a <- round(prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal)),3)
-b <- round(prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial)),3)
+round(prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal)),3)
+round(prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial)),3)
 
 ---------
   
