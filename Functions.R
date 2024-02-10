@@ -143,7 +143,7 @@ spp_trend <- function(Data, spp, y, umbral = 50) {
 }
 
 
-spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil) {
+spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil, x) {
   tabla_ind <- data.frame(
     "Percentil" = NA,
     "Spp" = NA,
@@ -170,37 +170,36 @@ spp_trend_percentil <- function(Data, spp, y, umbral =50, percentil) {
     
     pi <- quantile(ind$Lat, percentil)
     
+    
     ## SUSTITUIR ELIF
-    if (percentil = 50) {
+    if (percentil == 50) {
       ind <- ind %>% 
-        filter(Lat <= pi+5)%>% 
-        filter(Lat >= pi-5)
-    }else{
+        filter(ind[,x] <= pi+5)%>% 
+        filter(ind[,x] >= pi-5)
+    }else if(percentil < 50) {
+      ind <- ind %>% 
+        filter(ind[,x] <= pi)
+    } else {
+      ind <- ind %>% 
+        filter(ind[,x] >= pi)
     }
-    
-    pi <- quantile(ind$Lat, percentil)
-    
-    if (percentil < 50) {
-      ind <- ind %>% 
-        filter(Lat <= pi)
-    }else{
-      ind <- ind %>% 
-        filter(Lat >= pi)
-      }
-    
+   
     gen <- Data %>%
       mutate(group = "g")
     
     pg <- quantile(gen$Lat, percentil)
     
-    if (percentil < 50) {
+    if (percentil == 50) {
       gen <- gen %>% 
-        filter(Lat <= pg)
-    }else{
+        filter(gen[,x] <= pg+5)%>% 
+        filter(gen[,x] >= pg-5)
+    }else if(percentil < 50) {
       gen <- gen %>% 
-        filter(Lat >= pg)
+        filter(gen[,x] <= pg)
+    } else {
+      gen <- gen %>% 
+        filter(gen[,x] >= pg)
     }
-    
    
     dat <- rbind(gen, ind)
     
