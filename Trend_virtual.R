@@ -87,7 +87,6 @@ round(prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial)),3)
 
 ---------
   
-  
 Thermal_acc <- 0
 p <- length(a)/(0.5*length(a))
 for (k in 1:p) {
