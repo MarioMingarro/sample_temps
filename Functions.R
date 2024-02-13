@@ -167,13 +167,13 @@ spp_trend_percentil <- function(Data, spp, y, n_min =50, percentil, variable) {
     ind <- Data %>%
       filter(species == spp[n]) %>%
       mutate(group = "i")
-    
     pi <- quantile(ind[,variable], percentil)
   
     if (percentil == .50) {
+      p55 <- quantile(ind[,variable], .55)
+      p45 <- quantile(ind[,variable], .45)
       ind <- ind %>% 
-        filter(ind[,variable] <= pi+5)%>% 
-        filter(ind[,variable] >= pi-5)
+        filter(between(ind[,variable], p45, p55))
       print("P45_P55")
     }else if(percentil < .50) {
       ind <- ind %>% 
@@ -191,9 +191,10 @@ spp_trend_percentil <- function(Data, spp, y, n_min =50, percentil, variable) {
     pg <- quantile(gen[,variable], percentil)
     
     if (percentil == .50) {
+      p55 <- quantile(gen[,variable], .55)
+      p45 <- quantile(gen[,variable], .45)
       gen <- gen %>% 
-        filter(gen[,variable] <= pg+5)%>% 
-        filter(gen[,variable] >= pg-5)
+        filter(between(gen[,variable], p45, p55))
       print("P45_P55")
     }else if(percentil < .50) {
       gen <- gen %>% 

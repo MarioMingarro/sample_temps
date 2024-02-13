@@ -13,7 +13,7 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/occurrencias_virtualsp_SC_TT.RDS") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.005.rds") # Cargamos datos
 
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
@@ -38,18 +38,54 @@ toc()
 
 # Percentil
 #x=5 lat; x=6 Tmax; x=7 Tmin
+
+percentil = 0.10
+variable = 5 #Lat
+
+ind <- Data %>%
+  filter(species == spp[10]) 
+pi <- quantile(ind[,variable], percentil)
+
+if (percentil == .50) {
+  p55 <- quantile(ind[,variable], .55)
+  p45 <- quantile(ind[,variable], .45)
+  ind_50 <- ind %>% 
+    filter(between(ind[,variable], p45, p55))
+  print("P45_P55")
+}else if(percentil < .50) {
+  ind_10 <- ind %>% 
+    filter(ind[,variable] <= pi)
+  print("P0_P10")
+} else {
+  ind_90 <- ind %>% 
+    filter(ind[,variable] >= pi)
+  print("P90_P100")
+}
+
+ggplot()+
+  geom_point(data = ind,aes(Long, Lat, col = Año_Mes), alpha =.2)+
+  geom_point(data = ind_90,aes(Long, Lat, col = Año_Mes))+
+  geom_point(data = ind_50,aes(Long, Lat, col = Año_Mes))+
+  geom_point(data = ind_10,aes(Long, Lat, col = Año_Mes))+
+  labs(title = spp[10])+
+  scale_color_gradient(low="blue", high="red")
+
+
+
+
+tabla_ind <-data.frame()
 y <- "Lat"
-tabla_Lat <- spp_trend_percentil(Data, spp, y, n_min = 50,  percentil = 0.10, variable=5)
+tabla_Lat <- spp_trend_percentil(Data, spp, y, n_min = 50,  percentil, variable=5)
 y <- "TMAX"
-tabla_TMAX <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil = 0.10, variable=6)
+tabla_TMAX <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil, variable=6)
 y <- "TMIN"
-tabla_TMIN <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil = 0.10, variable=7)
+tabla_TMIN <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil, variable=7)
 
 tabla_ind <- rbind(tabla_ind,tabla_Lat,tabla_TMAX,tabla_TMIN)
 tabla_ind[,4] <- round(tabla_ind[,4],4)
 
 ## Significance ----
-Tabla_sig <-
+Tabla_sig_90               <-
   tabla_ind %>%
   # Selecciona las variables
   dplyr::select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
@@ -81,9 +117,20 @@ Tabla_sig <-
   separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
 
+Tabla_sig_10 <- mutate(Tabla_sig_10, Percentil = .10)
+Tabla_sig_50 <- mutate(Tabla_sig_50, Percentil = .50)
+Tabla_sig_90 <- mutate(Tabla_sig_90, Percentil = .90)
+Tabla_sig <- rbind(Tabla_sig_10,Tabla_sig_50,Tabla_sig_90)
 
-round(prop.table(table(Tabla_sig$Thermal_G, Tabla_sig$Thermal)),3)
-round(prop.table(table(Tabla_sig$Spatial_G, Tabla_sig$Spatial)),3)
+writexl::write_xlsx(Tabla_sig, "B:/A_JORGE/A_VIRTUALES/resultados_percentiles_10spp_05.xlsx")
+Tabla_sig %>% 
+  group_by(Spp)
+
+
+round(prop.table(table(Tabla_sig_10$Thermal_G, Tabla_sig_10$Thermal)),3)
+round(prop.table(table(Tabla_sig_10$Spatial_G, Tabla_sig_10$Spatial)),3)
+round(prop.table(table(Tabla_sig_90$Thermal_G, Tabla_sig_90$Thermal)),3)
+round(prop.table(table(Tabla_sig_90$Spatial_G, Tabla_sig_90$Spatial)),3)
 
 ---------
   
