@@ -24,55 +24,69 @@ x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],2) 
 
+# Map ----
+world_map <- map_data("world")
+directorio <- "B:/A_JORGE/A_VIRTUALES/MAPS/"
+spp <- unique(Data$species)
+
+spp_plotting(spp, Data, world_map, directorio)
 
 # All species -----
 tabla_general <- general_trend(Data_10,y)
 
 # Indivudual species ----
+## Mean ----
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
 spp <- spp[1:10]
 
 tic()
 tabla_ind <- spp_trend(Data, spp, y, n_min = 50)
 toc()
+tabla_ind[,4] <- round(tabla_ind[,4],4)
+### Significance ----
+Tabla_sig_mean <-
+  tabla_ind %>%
+  # Selecciona las variables
+  dplyr::select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
+  # Cambia la estructura de la tabla
+  pivot_wider(names_from = Variable, 
+              values_from = c(Trend,Dif_pvalue)) %>%
+  # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
+  mutate(
+    Spatial =
+      case_when(
+        Dif_pvalue_Lat <= 0.01 & Trend_Lat > 0 ~ "SA",
+        Dif_pvalue_Lat <= 0.01 & Trend_Lat < 0 ~ "SD",
+        TRUE ~ "SC"))  %>%
+  # Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin y de si las tendencias son positivas
+  mutate(
+    Thermal =
+      case_when(
+        Dif_pvalue_TMIN <= 0.01 & Trend_TMIN < 0 ~ "TA",
+        Dif_pvalue_TMIN <= 0.01 & Trend_TMIN > 0 ~ "TT",
+        Dif_pvalue_TMAX <= 0.01 & Trend_TMAX < 0 ~ "TA",
+        Dif_pvalue_TMAX <= 0.01 & Trend_TMAX > 0 ~ "TT",
+        TRUE ~ "TC")) %>%
+  # Une el numero de registros obtenidos del conjunto global de datos
+  left_join(
+    Data %>%
+      group_by(species) %>%
+      summarise(Registros = n()),
+    by = c("Spp" = "species"))  %>% 
+  separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
+  subset(select = -c(A,B))
 
-# Percentil
+
+round(prop.table(table(Tabla_sig_mean$Thermal_G, Tabla_sig_mean$Thermal)),3)
+round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
+
+
+## Percentil ----
 #x=5 lat; x=6 Tmax; x=7 Tmin
+spp <- unique(Data$species)
 
 percentil = 0.10
-variable = 5 #Lat
-
-ind <- Data %>%
-  filter(species == spp[10]) 
-pi <- quantile(ind[,variable], percentil)
-
-if (percentil == .50) {
-  p55 <- quantile(ind[,variable], .55)
-  p45 <- quantile(ind[,variable], .45)
-  ind_50 <- ind %>% 
-    filter(between(ind[,variable], p45, p55))
-  print("P45_P55")
-}else if(percentil < .50) {
-  ind_10 <- ind %>% 
-    filter(ind[,variable] <= pi)
-  print("P0_P10")
-} else {
-  ind_90 <- ind %>% 
-    filter(ind[,variable] >= pi)
-  print("P90_P100")
-}
-
-ggplot()+
-  geom_point(data = ind,aes(Long, Lat, col = Año_Mes), alpha =.2)+
-  geom_point(data = ind_90,aes(Long, Lat, col = Año_Mes))+
-  geom_point(data = ind_50,aes(Long, Lat, col = Año_Mes))+
-  geom_point(data = ind_10,aes(Long, Lat, col = Año_Mes))+
-  labs(title = spp[10])+
-  scale_color_gradient(low="blue", high="red")
-
-
-
-
+tic()
 tabla_ind <-data.frame()
 y <- "Lat"
 tabla_Lat <- spp_trend_percentil(Data, spp, y, n_min = 50,  percentil, variable=5)
@@ -80,12 +94,12 @@ y <- "TMAX"
 tabla_TMAX <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil, variable=6)
 y <- "TMIN"
 tabla_TMIN <- spp_trend_percentil(Data, spp, y, n_min = 50, percentil, variable=7)
-
+toc()
 tabla_ind <- rbind(tabla_ind,tabla_Lat,tabla_TMAX,tabla_TMIN)
 tabla_ind[,4] <- round(tabla_ind[,4],4)
 
-## Significance ----
-Tabla_sig_90               <-
+### Significance ----
+Tabla_sig_mean <-
   tabla_ind %>%
   # Selecciona las variables
   dplyr::select(c(Spp, Trend, Variable, Dif_pvalue)) %>%  
@@ -120,15 +134,21 @@ Tabla_sig_90               <-
 Tabla_sig_10 <- mutate(Tabla_sig_10, Percentil = .10)
 Tabla_sig_50 <- mutate(Tabla_sig_50, Percentil = .50)
 Tabla_sig_90 <- mutate(Tabla_sig_90, Percentil = .90)
-Tabla_sig <- rbind(Tabla_sig_10,Tabla_sig_50,Tabla_sig_90)
 
-writexl::write_xlsx(Tabla_sig, "B:/A_JORGE/A_VIRTUALES/resultados_percentiles_10spp_05.xlsx")
+Tabla_sig_mean <- mutate(Tabla_sig_mean, Percentil = 999)
+Tabla_sig <- rbind(Tabla_sig_mean,Tabla_sig_10,Tabla_sig_50,Tabla_sig_90)
+
+writexl::write_xlsx(Tabla_sig, "B:/A_JORGE/A_VIRTUALES/resultados_percentiles_all_spp_05.xlsx")
 Tabla_sig %>% 
   group_by(Spp)
 
 
+round(prop.table(table(Tabla_sig_mean$Thermal_G, Tabla_sig_mean$Thermal)),3)
+round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
 round(prop.table(table(Tabla_sig_10$Thermal_G, Tabla_sig_10$Thermal)),3)
 round(prop.table(table(Tabla_sig_10$Spatial_G, Tabla_sig_10$Spatial)),3)
+round(prop.table(table(Tabla_sig_50$Thermal_G, Tabla_sig_50$Thermal)),3)
+round(prop.table(table(Tabla_sig_50$Spatial_G, Tabla_sig_50$Spatial)),3)
 round(prop.table(table(Tabla_sig_90$Thermal_G, Tabla_sig_90$Thermal)),3)
 round(prop.table(table(Tabla_sig_90$Spatial_G, Tabla_sig_90$Spatial)),3)
 

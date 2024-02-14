@@ -2,7 +2,10 @@ packages.to.use <- c("readxl",
                      "tidyverse",
                      "writexl",
                      "tictoc",
-                     "jtools")
+                     "jtools",
+                     "viridisLite",
+                     "rnaturalearth",
+                     "rnaturalearthdata")
 
 packages.to.use <- unique(packages.to.use)
 
@@ -272,4 +275,37 @@ spp_trend_percentil <- function(Data, spp, y, n_min =50, percentil, variable) {
     }
   }
   return(tabla_ind)
+}
+
+# Map percentiles
+spp_plotting <- function(spp, Data, world_map, directorio) {
+for (i in 1:length(spp)){
+  ind <- Data %>%
+    filter(species == spp[i]) 
+  p10 <- quantile(ind$Lat , .1)
+  p45 <- quantile(ind$Lat, .45)
+  p55 <- quantile(ind$Lat, .55)
+  p90 <- quantile(ind$Lat, .9)
+  
+  ind_50 <- ind %>% 
+    filter(between(ind$Lat, p45, p55))
+  ind_10 <- ind %>% 
+    filter(ind$Lat <= p10)
+  ind_90 <- ind %>% 
+    filter(ind$Lat >= p90)
+  
+  ggplot()+
+    geom_sf(data=world_map)+
+    geom_point(data = ind,aes(Long, Lat, col = Año_Mes), alpha =.2)+
+    geom_point(data = ind_90,aes(Long, Lat, col = Año_Mes))+
+    geom_point(data = ind_50,aes(Long, Lat, col = Año_Mes))+
+    geom_point(data = ind_10,aes(Long, Lat, col = Año_Mes))+
+    labs(title = spp[i], subtitle = "0.05%")+
+    scale_colour_viridis_c(option = "D",trans = "sqrt", alpha = .8)+
+    coord_sf(xlim = c(-20,50), ylim = c(35,75), expand = FALSE)+
+    theme(axis.text = element_text(angle = 45, size =8),
+          axis.title = element_blank(),
+          legend.title = element_blank())
+  ggsave(paste0(directorio,spp[i],"_005.jpeg"), width = 20, height = 20, units = "cm",dpi = 300)
+  }
 }
