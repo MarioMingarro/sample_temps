@@ -44,11 +44,11 @@ general_trend <- function(Data, y) {
                        paste(x, collapse = "+"),
                        sep = " ~ ")),
          data = Data)
-    tabla$Trend <- round(model_g$coefficients[[2]], 2) # Tendencia
-    tabla$t <- round(summary(model_g)$coefficients[2, 3], 4) # t del modelo
-    tabla$p <- round(summary(model_g)$coefficients[2, 4], 4) # p del modelo
-    tabla$P95_max <- round(confint(model_g, "Año_Mes", level = .95)[, 2], 2) # Intervalo de confianza max del 95%
-    tabla$P95_min <- round(confint(model_g, "Año_Mes", level = .95)[, 1], 2) # Intervalo de confianza min del 95%
+    tabla$Trend <- model_g$coefficients[[2]] # Tendencia
+    tabla$t <- summary(model_g)$coefficients[2, 3] # t del modelo
+    tabla$p <- summary(model_g)$coefficients[2, 4] # p del modelo
+    tabla$P95_max <- confint(model_g, "Año_Mes", level = .95)[, 2] # Intervalo de confianza max del 95%
+    tabla$P95_min <- confint(model_g, "Año_Mes", level = .95)[, 1] # Intervalo de confianza min del 95%
     tabla_general <- rbind(tabla_general, tabla) # Unimos las filas de la tabla general con cada una de las tablas individuales
   }
   return(tabla_general)
@@ -112,10 +112,10 @@ spp_trend <- function(Data, spp, y, n_min = 50) {
           
           # Añade resultados en la tabla
           tabla$Trend <- model_i$coefficients[[2]]
-          tabla$t <- round(summary(model_i)$coefficients[2, 3],4)
-          tabla$p <- round(summary(model_i)$coefficients[2, 4],4)
-          tabla$P95_max <- round(confint(model_i, "Año_Mes", level = .95)[, 2],4)
-          tabla$P95_min <- round(confint(model_i, "Año_Mes", level = .95)[, 1],4)
+          tabla$t <- summary(model_i)$coefficients[2, 3]
+          tabla$p <- summary(model_i)$coefficients[2, 4]
+          tabla$P95_max <- confint(model_i, "Año_Mes", level = .95)[, 2]
+          tabla$P95_min <- confint(model_i, "Año_Mes", level = .95)[, 1]
           
           # Crea de nuevo el modelo de comparación y ver si existe diferencias acxorde al grupo
           model_int <- lm(formula(paste(y[i], paste(
@@ -123,8 +123,8 @@ spp_trend <- function(Data, spp, y, n_min = 50) {
           ), sep = " ~ ")), data = dat)
           
           
-          tabla$Dif_t <- round(summary(model_int)$coefficients[4, 3],4)
-          tabla$Dif_pvalue <- round(summary(model_int)$coefficients[4, 4],4)
+          tabla$Dif_t <- summary(model_int)$coefficients[4, 3]
+          tabla$Dif_pvalue <- summary(model_int)$coefficients[4, 4]
           
           tabla_ind <- rbind(tabla_ind, tabla) 
           
@@ -277,35 +277,36 @@ spp_trend_percentil <- function(Data, spp, y, n_min =50, percentil, variable) {
   return(tabla_ind)
 }
 
-# Map percentiles
-spp_plotting <- function(spp, Data, world_map, directorio) {
-for (i in 1:length(spp)){
-  ind <- Data %>%
-    filter(species == spp[i]) 
-  p10 <- quantile(ind$Lat , .1)
-  p45 <- quantile(ind$Lat, .45)
-  p55 <- quantile(ind$Lat, .55)
-  p90 <- quantile(ind$Lat, .9)
-  
-  ind_50 <- ind %>% 
-    filter(between(ind$Lat, p45, p55))
-  ind_10 <- ind %>% 
-    filter(ind$Lat <= p10)
-  ind_90 <- ind %>% 
-    filter(ind$Lat >= p90)
-  
-  ggplot()+
-    geom_sf(data=world_map)+
-    geom_point(data = ind,aes(Long, Lat, col = Año_Mes), alpha =.2)+
-    geom_point(data = ind_90,aes(Long, Lat, col = Año_Mes))+
-    geom_point(data = ind_50,aes(Long, Lat, col = Año_Mes))+
-    geom_point(data = ind_10,aes(Long, Lat, col = Año_Mes))+
-    labs(title = spp[i], subtitle = "0.05%")+
-    scale_colour_viridis_c(option = "D",trans = "sqrt", alpha = .8)+
-    coord_sf(xlim = c(-20,50), ylim = c(35,75), expand = FALSE)+
-    theme(axis.text = element_text(angle = 45, size =8),
-          axis.title = element_blank(),
-          legend.title = element_blank())
-  ggsave(paste0(directorio,spp[i],"_005.jpeg"), width = 20, height = 20, units = "cm",dpi = 300)
-  }
-}
+# Map percentiles ----
+#spp_plotting <- function(spp, Data, world_map, directorio) {
+#for (i in 1:length(spp)){
+#  ind <- Data %>%
+#    filter(species == spp[i]) 
+#  p10 <- quantile(ind$Lat , .1)
+#  p45 <- quantile(ind$Lat, .45)
+#  p55 <- quantile(ind$Lat, .55)
+#  p90 <- quantile(ind$Lat, .9)
+#  
+#  ind_50 <- ind %>% 
+#    filter(between(ind$Lat, p45, p55))
+#  ind_10 <- ind %>% 
+#    filter(ind$Lat <= p10)
+#  ind_90 <- ind %>% 
+#    filter(ind$Lat >= p90)
+#  
+#  ggplot()+
+#    geom_sf(data = world_map)+
+#    geom_point(data = ind, aes(Long, Lat, col = Año_Mes), alpha =.2)+
+#    geom_point(data = ind_90, aes(Long, Lat, col = Año_Mes))+
+#    geom_point(data = ind_50, aes(Long, Lat, col = Año_Mes))+
+#    geom_point(data = ind_10, aes(Long, Lat, col = Año_Mes))+
+#    labs(title = spp[i], subtitle = paste0("0.05%   count = ", nrow(ind)))+
+#    scale_colour_viridis_c(option = "D",trans = "sqrt", alpha = .8)+
+#    coord_sf(xlim = c(-20,50), ylim = c(35,75), expand = FALSE)+
+#    theme(axis.text = element_text(angle = 45, size =8),
+#          axis.title = element_blank(),
+#          legend.title = element_blank())
+#  ggsave(paste0(directorio, spp[i], "_005.jpeg"), width = 20, height = 20, units = "cm",dpi = 300)
+#  }
+#}
+

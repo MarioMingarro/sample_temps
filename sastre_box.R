@@ -16,7 +16,7 @@ library(jtools)
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.02.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.005.rds") # Cargamos datos
 
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
