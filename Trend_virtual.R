@@ -13,7 +13,7 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/selected_ocs_percent_0.005.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/DATA/ALEATORIAS/selected_ocs_percent_0.005.rds") # Cargamos datos
 
 
 arc <- list.files("B:/A_JORGE/A_VIRTUALES/DATA/GRADIENTS/005/", full.names = T)
@@ -24,6 +24,8 @@ for(i in 1:9){
 }
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
+Data$tmaxValues <- Data$tmaxValues/10
+Data$tminValues <- Data$tminValues/10
 
 colnames(Data) <- c("species","year","month","Long","Lat","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
 
@@ -55,25 +57,25 @@ tabla_ind[,4] <- round(tabla_ind[,4],4)
 Tabla_sig_mean <-
   tabla_ind %>%
   # Selecciona las variables
-  dplyr::select(c(Spp, Trend,t,p, Variable, Dif_pvalue, Dif_t)) %>%  
+  dplyr::select(c(Spp, Trend,t, p, Variable,Dif_t, Dif_pvalue )) %>%  
   # Cambia la estructura de la tabla
   pivot_wider(names_from = Variable, 
-              values_from = c(Trend,t,p,Dif_pvalue, Dif_t)) %>%
+              values_from = c(Trend,t,p,Dif_t,Dif_pvalue)) %>%
   # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
   mutate(
     Spatial =
       case_when(
-        Dif_pvalue_Lat <= 0.01 & Trend_Lat > 0 ~ "SA",
-        Dif_pvalue_Lat <= 0.01 & Trend_Lat < 0 ~ "SD",
+        Dif_pvalue_Lat <= 0.05 & Trend_Lat > 0 ~ "SA",
+        Dif_pvalue_Lat <= 0.05 & Trend_Lat < 0 ~ "SD",
         TRUE ~ "SC"))  %>%
   # Añade columna de thermal y le asigna una categoría segun los pvalues de tmax o tmin y de si las tendencias son positivas
   mutate(
     Thermal =
       case_when(
-        Dif_pvalue_TMIN <= 0.01 & Trend_TMIN < 0 ~ "TA",
-        Dif_pvalue_TMIN <= 0.01 & Trend_TMIN > 0 ~ "TT",
-        Dif_pvalue_TMAX <= 0.01 & Trend_TMAX < 0 ~ "TA",
-        Dif_pvalue_TMAX <= 0.01 & Trend_TMAX > 0 ~ "TT",
+        Dif_pvalue_TMIN <= 0.05 & Trend_TMIN < 0 ~ "TA",
+        Dif_pvalue_TMIN <= 0.05 & Trend_TMIN > 0 ~ "TT",
+        Dif_pvalue_TMAX <= 0.05 & Trend_TMAX < 0 ~ "TA",
+        Dif_pvalue_TMAX <= 0.05 & Trend_TMAX > 0 ~ "TT",
         TRUE ~ "TC")) %>%
   # Une el numero de registros obtenidos del conjunto global de datos
   left_join(
@@ -84,8 +86,8 @@ Tabla_sig_mean <-
   separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
 
-write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/RESULT/005/all_005.xlsx")
-write_xlsx(tabla_general, "B:/A_JORGE/A_VIRTUALES/RESULT/005/general_005.xlsx")
+write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/RESULT/ALEATORIO/005/all_005.xlsx")
+write_xlsx(tabla_general,  "B:/A_JORGE/A_VIRTUALES/RESULT/ALEATORIO/005/general_005.xlsx")
 
 round(prop.table(table(Tabla_sig_mean$Thermal_G, Tabla_sig_mean$Thermal)),3)
 round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
