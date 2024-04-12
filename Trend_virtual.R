@@ -13,15 +13,16 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/DATA/ALEATORIAS/selected_ocs_percent_0.005.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/DATA/ALEATORIAS/selected_ocs_percent_0.01.rds") # Cargamos datos
 
 
-arc <- list.files("B:/A_JORGE/A_VIRTUALES/DATA/GRADIENTS/005/", full.names = T)
+arc <- list.files("B:/A_JORGE/A_VIRTUALES/DATA/GRADIENTS/01/", full.names = T)
 Data <- data.frame()
 for(i in 1:9){
   kk <- readRDS(arc[i])
   Data <- rbind(Data, kk)
 }
+rm(kk)
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
 Data$tmaxValues <- Data$tmaxValues/10
@@ -86,8 +87,8 @@ Tabla_sig_mean <-
   separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
 
-write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/RESULT/ALEATORIO/005/all_005.xlsx")
-write_xlsx(tabla_general,  "B:/A_JORGE/A_VIRTUALES/RESULT/ALEATORIO/005/general_005.xlsx")
+write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/RESULT/GRADIENTS/01/all_01.xlsx")
+write_xlsx(tabla_general,  "B:/A_JORGE/A_VIRTUALES/RESULT/GRADIENTS/01/general_01.xlsx")
 
 round(prop.table(table(Tabla_sig_mean$Thermal_G, Tabla_sig_mean$Thermal)),3)
 round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
