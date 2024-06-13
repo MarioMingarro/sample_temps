@@ -74,7 +74,7 @@ spp_trend <- function(Data, spp, y, n_min = 50) {
     # Bucle para actuar sobre cada una de las especies
     # Filtra la especie  
     ind <- Data %>%
-      filter(species == spp[n]) %>%
+      dplyr::filter(species == spp[n]) %>%
       mutate(group = "i")
     
     gen <- Data %>%

@@ -13,7 +13,12 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/DATA/ALEATORIAS/selected_ocs_percent_0.01.rds") # Cargamos datos
+Data <- readRDS("B:/A_JORGE/A_VIRTUALES/NUEVAS/ALEATORIAS/spatial-gap_selected_ocs_percent_0.005.RDS") # Cargamos datos
+
+spatial-gap_selected_ocs_percent_0.01.RDS   #300
+selected_ocs_tMax_bias_percent_0.01.RDS     #450
+thermal-gap_selected_ocs_percent_0.01.RDS   #298
+selected_ocs_latitude_bias_percent_0.01.RDS #450
 
 
 arc <- list.files("B:/A_JORGE/A_VIRTUALES/DATA/GRADIENTS/01/", full.names = T)
@@ -23,12 +28,13 @@ for(i in 1:9){
   Data <- rbind(Data, kk)
 }
 rm(kk)
+
+# Modificar fechas
+colnames(Data) <- c("species","year","month","Long","Lat","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
-Data$tmaxValues <- Data$tmaxValues/10
-Data$tminValues <- Data$tminValues/10
-
-colnames(Data) <- c("species","year","month","Long","Lat","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
+Data$TMAX <- Data$TMAX/10
+Data$TMIN <- Data$TMIN/10
 
 x <- "Año_Mes" # Variable independiente
 y <- c("Lat", "TMAX", "TMIN") # Variables dependiente
@@ -48,6 +54,7 @@ tabla_general <- general_trend(Data,y)
 # Indivudual species ----
 ## Mean ----
 spp <- unique(Data$species) # Creamos un vector con los nombres de las especies
+
 
 tic()
 tabla_ind <- spp_trend(Data, spp, y, n_min = 50)
@@ -87,8 +94,8 @@ Tabla_sig_mean <-
   separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
 
-write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/RESULT/GRADIENTS/01/all_01.xlsx")
-write_xlsx(tabla_general,  "B:/A_JORGE/A_VIRTUALES/RESULT/GRADIENTS/01/general_01.xlsx")
+write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/NUEVAS/RESULT/ALEATORIAS/All_R_spatial-gap_selected_ocs_percent_0.005.xlsx")
+write_xlsx(tabla_general,  "B:/A_JORGE/A_VIRTUALES/NUEVAS/RESULT/ALEATORIAS/Gen_R_spatial-gap_selected_ocs_percent_0.005.xlsx")
 
 round(prop.table(table(Tabla_sig_mean$Thermal_G, Tabla_sig_mean$Thermal)),3)
 round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
