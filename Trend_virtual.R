@@ -13,7 +13,15 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("B:/A_JORGE/A_VIRTUALES/NUEVAS/ALEATORIAS/spatial-gap_selected_ocs_percent_0.005.RDS") # Cargamos datos
+Data <- readRDS("C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/muestreo_aleat_TA_TT_TC_percent_0.01.RDS") # Cargamos datos
+
+Data <- Data %>% filter(spatial == "SC")
+
+kk <- Data %>% group_by(species, thermal)  %>% 
+    summarise(n())
+kk %>% group_by(thermal)  %>% 
+  summarise(n())
+kk <- unique(Data$species)
 
 spatial-gap_selected_ocs_percent_0.01.RDS   #300
 selected_ocs_tMax_bias_percent_0.01.RDS     #450
@@ -30,9 +38,9 @@ for(i in 1:9){
 rm(kk)
 
 # Modificar fechas
-colnames(Data) <- c("species","year","month","Long","Lat","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
 Data$Año_Mes <- Data$month * 0.075
 Data$Año_Mes <- Data$year + Data$Año_Mes
+colnames(Data) <- c("species","year","month","Long","Lat","TMAX","TMIN","thermal_O","spatial_O","Año_Mes")
 Data$TMAX <- Data$TMAX/10
 Data$TMIN <- Data$TMIN/10
 
@@ -42,8 +50,9 @@ Data[,c(4:7)] <-round(Data[,c(4:7)],4)
 
 # Map ----
 world_map <- ne_countries(scale = "medium", returnclass = "sf")
-directorio <- "B:/A_JORGE/A_VIRTUALES/MAPS/SAMPLED_005/"
+directorio <- "C:/TRABAJO/SPP_VIRTUALES/RESULT/ALEATORIAS/MAPS/"
 spp <- unique(Data$species)
+spp <- spp[1:10]
 tic()
 spp_plotting(spp, Data, world_map, directorio)
 toc()
@@ -94,8 +103,8 @@ Tabla_sig_mean <-
   separate(Spp,c("A", "Spatial_G", "Thermal_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
 
-write_xlsx(Tabla_sig_mean, "B:/A_JORGE/A_VIRTUALES/NUEVAS/RESULT/ALEATORIAS/All_R_spatial-gap_selected_ocs_percent_0.005.xlsx")
-write_xlsx(tabla_general,  "B:/A_JORGE/A_VIRTUALES/NUEVAS/RESULT/ALEATORIAS/Gen_R_spatial-gap_selected_ocs_percent_0.005.xlsx")
+write_xlsx(Tabla_sig_mean, "C:/TRABAJO/SPP_VIRTUALES/RESULT/ALEATORIAS/All_R_selected_ocs_percent_0.01.xlsx")
+write_xlsx(tabla_general,  "C:/TRABAJO/SPP_VIRTUALES/RESULT/ALEATORIAS/Gen_R_selected_ocs_percent_0.01.xlsx")
 
 round(prop.table(table(Tabla_sig_mean$Thermal_G, Tabla_sig_mean$Thermal)),3)
 round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
@@ -204,3 +213,9 @@ Tabla_res <- Tabla_sig %>%
   mutate(Frecuency = (n *100) / sum(n))
 
 
+ggplot() + 
+  geom_smooth(data= Data, aes(x = Año, y = Lat),col = "black", fill = "black", method = "lm") +
+  geom_smooth(data= ind, aes(x = Año, y = Lat),col = "red", fill = "red", method = "lm")+
+  ggtitle(paste0(spp[i]))+
+  labs(x= "Year", y = "Latitude")+
+  theme_minimal()
