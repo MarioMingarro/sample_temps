@@ -13,7 +13,7 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/muestreo_aleat_SA_SC_SD_percent_0.01.RDS") # Cargamos datos
+Data <- readRDS("C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/muestreo_aleat_SA_SC_SD_percent_0.02.RDS") # Cargamos datos
 
 
 
@@ -69,8 +69,20 @@ round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
 
 ind <- Data %>%
   filter(species == spp[5])
+
 ggplot() + 
   geom_smooth(data= Data, aes(x = year, y = Lat, col = thermal_O), method = "lm")+
+  geom_smooth(data= Data, aes(x = year, y = Lat), col = "gold", method = "lm")+
+  geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", method = "lm")
+
+ggplot(data = Tabla_sig_mean) + 
+  geom_point(aes(x = seq_len(nrow(Tabla_sig_mean)),  
+      y = Trend_Lat, color = Spatial_G)) +
+  scale_color_viridis_d(option = "C") +         
+  theme_minimal() +                 
+  labs(x = "n",y = "Trend", color = "Thermal O"             
+  )
+
   geom_smooth(data= Data, aes(x = year, y = Lat), col = "gold", method = "lm")+
   geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", method = "lm")
 
