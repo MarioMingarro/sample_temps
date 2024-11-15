@@ -13,8 +13,8 @@ source("Functions.R")
 #SC	
 
 # Data ----
-Data <- readRDS("C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/muestreo_aleat_SA_SC_SD_percent_0.02.RDS") # Cargamos datos
-
+directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/"
+Data <- readRDS(paste0(directorio, "lista completa SA_SC_SD.RDS"))
 
 
 # Modificar fechas
@@ -50,10 +50,13 @@ Tabla_sig_mean <-
   # Cambia la estructura de la tabla
   pivot_wider(names_from = Variable, 
               values_from = c(Trend,t,p,Dif_t,Dif_pvalue)) %>%
+  # filter(
+  #   p_Lat <= 0.01) %>% 
   # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
   mutate(
     Spatial =
       case_when(
+        p_Lat >= 0.05~ "NS",
         Dif_pvalue_Lat <= 0.05 & Trend_Lat > 0 ~ "SA",
         Dif_pvalue_Lat <= 0.05 & Trend_Lat < 0 ~ "SD",
         TRUE ~ "SC"))  %>%
@@ -65,26 +68,34 @@ Tabla_sig_mean <-
     by = c("Spp" = "species"))  %>% 
   separate(Spp,c("A", "Spatial_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
+
+table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
 round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
 
+write_xlsx(Tabla_sig_mean, "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/resultados_v2.xlsx" )
 ind <- Data %>%
-  filter(species == spp[5])
+  filter(species == "virtualsp_SC_128")
 
 ggplot() + 
   geom_smooth(data= Data, aes(x = year, y = Lat, col = thermal_O), method = "lm")+
-  geom_smooth(data= Data, aes(x = year, y = Lat), col = "gold", method = "lm")+
-  geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", method = "lm")
+  geom_smooth(data= Data, aes(x = year, y = Lat), col = "black", linetype = "dashed", method = "lm")+
+  scale_color_viridis_d(option = "C") +
+  labs(x = "Year",y = "Latitude", color = "Response")+
+  theme_dark()
+
+  geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", method = "lm")+
+  ggtitle(paste0("virtualsp_SC_128"))
 
 ggplot(data = Tabla_sig_mean) + 
   geom_point(aes(x = seq_len(nrow(Tabla_sig_mean)),  
       y = Trend_Lat, color = Spatial_G)) +
   scale_color_viridis_d(option = "C") +         
-  theme_minimal() +                 
-  labs(x = "n",y = "Trend", color = "Thermal O"             
+  theme_dark() +                 
+  labs(x = "n",y = "Trend", color = "Response"             
   )
 
   geom_smooth(data= Data, aes(x = year, y = Lat), col = "gold", method = "lm")+
-  geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", method = "lm")
+  geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", linetype = "dashed",method = "lm")
 
 ggplot() + 
   geom_smooth(data= Data, aes(x = year, y = Lat),col = "dodgerblue", fill = "dodgerblue", method = "lm") +
