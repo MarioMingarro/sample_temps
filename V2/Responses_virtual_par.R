@@ -90,7 +90,7 @@ for (sampling_size in sampling_sizes) {
       separate(Spp, c("A", "Spatial_G", "B"), sep = "_", remove = FALSE) %>%
       subset(select = -c(A, B))
     
-    write_xlsx(Tabla_sig_mean, paste0(resultados_dir,"resultados_aleat_SA_SC_SD_001", sampling_size, ".xlsx"))
+    write_xlsx(Tabla_sig_mean, paste0(resultados_dir,"resultados_aleat_SA_SC_SD_", sampling_size, ".xlsx"))
     
     tabla <- table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
     
@@ -120,7 +120,6 @@ toc()
 # Detener el clúster
 stopCluster(cl)
 
-kappa_results <- kappa_results
 
 # Graficar los resultados
 ggplot(kappa_results, aes(x = SampleSize*100, y = Kappa_U)) +
