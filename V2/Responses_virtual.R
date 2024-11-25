@@ -13,8 +13,8 @@ source("Functions.R")
 #SC	
 
 # Data ----
-directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/"
-Data <- readRDS(paste0(directorio, "lista completa SA_SC_SD.RDS"))
+directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V3/"
+Data <- readRDS(paste0(directorio, "lista completa SA_SC_SD.RDS")) 
 
 
 # Modificar fechas
@@ -43,6 +43,39 @@ tabla_ind <- spp_trend(Data, spp, y, n_min = 50)
 tabla_ind[,4] <- round(tabla_ind[,4],4)
 toc()
 
+
+
+library(foreach)
+library(doParallel)
+
+# Configurar el clúster de paralelización
+numCores <- detectCores() - 10  # Usar todos menos 1 núcleo
+cl <- makeCluster(numCores)
+registerDoParallel(cl)
+
+# Comenzar la paralelización
+library(tictoc)  # Para medir el tiempo
+tic()
+
+# Dividir las tareas entre los núcleos
+tabla_ind <- foreach(
+  i = 1:length(spp), 
+  .combine = rbind, 
+  .packages = c("tidyverse", "tictoc", "jtools", "viridisLite")
+) %dopar% {
+  # Ejecutar spp_trend para cada elemento de spp
+  resultado <- spp_trend(Data, spp[i], y, n_min = 50)
+  resultado[, 4] <- round(resultado[, 4], 4)  # Redondear la columna 4
+  return(resultado)
+}
+
+toc()
+
+# Detener el clúster
+stopCluster(cl)
+
+
+
 Tabla_sig_mean <-
   tabla_ind %>%
   # Selecciona las variables
@@ -56,9 +89,9 @@ Tabla_sig_mean <-
   mutate(
     Spatial =
       case_when(
-        p_Lat >= 0.05~ "NS",
-        Dif_pvalue_Lat <= 0.05 & Trend_Lat > 0 ~ "SA",
-        Dif_pvalue_Lat <= 0.05 & Trend_Lat < 0 ~ "SD",
+        p_Lat >= 0.0002~ "SC",
+        Dif_pvalue_Lat <= 0.0002 & Trend_Lat > 0 ~ "SA",
+        Dif_pvalue_Lat <= 0.0002 & Trend_Lat < 0 ~ "SD",
         TRUE ~ "SC"))  %>%
   # Une el numero de registros obtenidos del conjunto global de datos
   left_join(
@@ -72,9 +105,51 @@ Tabla_sig_mean <-
 table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
 round(prop.table(table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)),3)
 
-write_xlsx(Tabla_sig_mean, "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V2/resultados_v2.xlsx" )
+
+table <- as.table(
+  rbind(
+    c(96, 4, 0), c(24, 76, 0),
+    c(0, 0, 100)
+  )
+)
+dimnames(table) <- list(
+  Simulado = c("SA", "SC", "SC"),
+  Clasificado = c("SA", "SC", "SC")
+)
+anxiety
+library("vcd")
+Kappa(table)
+
+
+# Crear la tabla de contingencia
+tabla <- table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
+
+# Asignar nombres a las filas y columnas
+dimnames(tabla) <- list(
+  Evaluador1 = c("SA", "SC", "SD"),
+  Evaluador2 = c("SA", "SC", "SD")
+)
+
+tabla_long <- as.table(tabla)
+
+
+kappa_fleiss <- kappam.fleiss(tabla_long)
+
+
+print(kappa_fleiss)
+
+
+write_xlsx(Tabla_sig_mean, "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V3/resultados_aleat_SA_SC_SD_percent_0.01.xlsx" )
+
+
+
+
+
+
+
+
 ind <- Data %>%
-  filter(species == "virtualsp_SC_128")
+  filter(species == "virtualsp_SC_164")
 
 ggplot() + 
   geom_smooth(data= Data, aes(x = year, y = Lat, col = thermal_O), method = "lm")+
@@ -84,7 +159,7 @@ ggplot() +
   theme_dark()
 
   geom_smooth(data= ind, aes(x = year, y = Lat), col ="black", method = "lm")+
-  ggtitle(paste0("virtualsp_SC_128"))
+  ggtitle(paste0("virtualsp_SC_164"))
 
 ggplot(data = Tabla_sig_mean) + 
   geom_point(aes(x = seq_len(nrow(Tabla_sig_mean)),  

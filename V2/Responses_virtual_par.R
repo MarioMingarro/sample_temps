@@ -19,7 +19,7 @@ if (!dir.exists(resultados_dir)) {
   dir.create(resultados_dir)
 }
 
-Data <- readRDS(paste0(directorio,"muestreo_aleat_SA_SC_SD_percent_0.01.RDS "  )) #"lista completa SA_SC_SD.RDS"
+Data <- readRDS(paste0(directorio,"lista completa SA_SC_SD.RDS"  )) #"muestreo_aleat_SA_SC_SD_percent_0.01.RDS"
 
 # Modificar fechas
 Data$Año_Mes <- Data$month * 0.075
@@ -44,7 +44,7 @@ cl <- makeCluster(numCores)
 registerDoParallel(cl)
 
 # Especificar los tamaños de muestreo
-sampling_sizes <- seq(0.001, 0.017, by = 0.005)
+sampling_sizes <- c(0.005, 0.01, 0.05, 0.1, 0.25)
 
 # Almacenar resultados de Kappa para cada tamaño de muestra
 kappa_results <- data.frame(SampleSize = numeric(0), Kappa_U = numeric(0))
