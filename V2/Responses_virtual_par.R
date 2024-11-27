@@ -19,7 +19,15 @@ if (!dir.exists(resultados_dir)) {
   dir.create(resultados_dir)
 }
 
-Data <- readRDS(paste0(directorio,"lista completa SA_SC_SD.RDS"  )) #"muestreo_aleat_SA_SC_SD_percent_0.01.RDS"
+Data <- readRDS(paste0(directorio,"lista completa SA_SC_SD.RDS" )) 
+# "muestreo_aleat_SA_SC_SD_percent_5e-04.RDS" 
+# "muestreo_aleat_SA_SC_SD_percent_0.00025.RDS"  
+# "muestreo_aleat_SA_SC_SD_percent_0.001.RDS"   
+# "muestreo_aleat_SA_SC_SD_percent_0.0025.RDS"   
+# "muestreo_aleat_SA_SC_SD_percent_0.005.RDS"    
+# "muestreo_aleat_SA_SC_SD_percent_0.01.RDS"    
+# "muestreo_aleat_SA_SC_SD_percent_0.02.RDS"     
+
 
 # Modificar fechas
 Data$Año_Mes <- Data$month * 0.075
@@ -34,7 +42,115 @@ x <- "Año_Mes" # Variable independiente
 y <- c("Lat") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],4) 
 
+
+ 
 spp <- unique(Data$species)
+
+library(foreach)
+library(doParallel)
+
+# Configurar el clúster de paralelización
+numCores <- detectCores() - 10  # Usar todos menos 1 núcleo
+cl <- makeCluster(numCores)
+registerDoParallel(cl)
+
+# Comenzar la paralelización
+library(tictoc)  # Para medir el tiempo
+tic()
+
+# Dividir las tareas entre los núcleos
+tabla_ind <- foreach(
+  i = 1:length(spp), 
+  .combine = rbind, 
+  .packages = c("tidyverse", "tictoc", "jtools", "viridisLite")
+) %dopar% {
+  # Ejecutar spp_trend para cada elemento de spp
+  resultado <- spp_trend(Data, spp[i], y, n_min = 50)
+  resultado[, 4] <- round(resultado[, 4], 4)  # Redondear la columna 4
+  return(resultado)
+}
+
+toc()
+
+# Detener el clúster
+stopCluster(cl)
+
+
+
+Tabla_sig_mean <-
+  tabla_ind %>%
+  # Selecciona las variables
+  dplyr::select(c(Spp, Trend,t, p, Variable,Dif_t, Dif_pvalue )) %>%  
+  # Cambia la estructura de la tabla
+  pivot_wider(names_from = Variable, 
+              values_from = c(Trend,t,p,Dif_t,Dif_pvalue)) %>%
+  # filter(
+  #   p_Lat <= 0.01) %>% 
+  # Añade columna de spatial y le asigna una categoría según los pvalues de latitud, longitud o elevacion
+  mutate(
+    Spatial =
+      case_when(
+        p_Lat >= 0.0002~ "SC",
+        Dif_pvalue_Lat <= 0.0002 & Trend_Lat > 0 ~ "SA",
+        Dif_pvalue_Lat <= 0.0002 & Trend_Lat < 0 ~ "SD",
+        TRUE ~ "SC"))  %>%
+  # Une el numero de registros obtenidos del conjunto global de datos
+  left_join(
+    Data %>%
+      group_by(species) %>%
+      summarise(Registros = n()),
+    by = c("Spp" = "species"))  %>% 
+  separate(Spp,c("A", "Spatial_G", "B"), sep = "_", remove = FALSE) %>% 
+  subset(select = -c(A,B))
+
+write_xlsx(Tabla_sig_mean, paste0(resultados_dir,"resultados_aleat_SA_SC_SD_", "0.02", ".xlsx"))
+
+
+table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
+
+
+
+
+
+a <- general_trend(Data,y)
+b <- general_trend(Data,y)
+c <- general_trend(Data,y)
+d <- general_trend(Data,y)
+e <- general_trend(Data,y)
+f <- general_trend(Data,y)
+g <- general_trend(Data,y)
+h <- general_trend(Data,y)
+
+res <- rbind(a,b,c,d,e,f,g,h)
+res <- mutate(res, "muestra" = c("5e-04","0.00025","0.001", "0.0025", "0.005", "0.01", "0.02", "completa"))
+write_xlsx(res, paste0(resultados_dir,"resultados_general_SA_SC_SD_muestreo.xlsx"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Iterar sobre los diferentes tamaños de muestreo
