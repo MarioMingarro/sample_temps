@@ -19,7 +19,7 @@ if (!dir.exists(resultados_dir)) {
   dir.create(resultados_dir)
 }
 
-Data <- readRDS(paste0(directorio,"muestreo_aleat_SA_SC_SD_percent_0.02.RDS")) 
+Data <- readRDS(paste0(directorio,"lista completa SA_SC_SD.RDS")) 
 # "muestreo_aleat_SA_SC_SD_percent_5e-04.RDS"   
 # "muestreo_aleat_SA_SC_SD_percent_0.001.RDS"   
 # "muestreo_aleat_SA_SC_SD_percent_0.0025.RDS"   
@@ -108,7 +108,32 @@ write_xlsx(Tabla_sig_mean, paste0(resultados_dir,"resultados_aleat_SA_SC_SD_", "
 table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
 
 
+Data <- readRDS(paste0(directorio,"muestreo_aleat_SA_SC_SD_percent_0.02.RDS")) 
 
+model_g <-
+  lm(formula(paste("Lat",  # Crea formula utilizando la variable del bucle
+                   "Año_Mes",
+                   sep = " ~ ")),
+     data = Data)
+
+
+# "muestreo_aleat_SA_SC_SD_percent_5e-04.RDS"   
+# "muestreo_aleat_SA_SC_SD_percent_0.001.RDS"   
+# "muestreo_aleat_SA_SC_SD_percent_0.0025.RDS"   
+# "muestreo_aleat_SA_SC_SD_percent_0.005.RDS"    
+# "muestreo_aleat_SA_SC_SD_percent_0.01.RDS"    
+# "muestreo_aleat_SA_SC_SD_percent_0.02.RDS"   
+Data$Año_Mes <- Data$month * 0.075
+Data$Año_Mes <- Data$year + Data$Año_Mes
+colnames(Data) <- c("species","year","month","Long","Lat","TMAX","TMIN","thermal_O","Año_Mes")
+Data$TMAX <- Data$TMAX/10
+Data$TMIN <- Data$TMIN/10
+
+
+# SPATIAL ----
+x <- "Año_Mes" # Variable independiente
+y <- c("Lat") # Variables dependiente
+Data[,c(4:7)] <-round(Data[,c(4:7)],4)
 
 
 a <- general_trend(Data,y)
@@ -117,11 +142,10 @@ c <- general_trend(Data,y)
 d <- general_trend(Data,y)
 e <- general_trend(Data,y)
 f <- general_trend(Data,y)
-g <- general_trend(Data,y)
-h <- general_trend(Data,y)
 
-res <- rbind(a,b,c,d,e,f,g,h)
-res <- mutate(res, "muestra" = c("5e-04","0.00025","0.001", "0.0025", "0.005", "0.01", "0.02", "completa"))
+
+res <- rbind(a,b,c,d,e,f)
+res <- mutate(res, "muestra" = c("5e-04","0.001", "0.0025", "0.005", "0.01", "0.02"))
 write_xlsx(res, paste0(resultados_dir,"resultados_general_SA_SC_SD_muestreo.xlsx"))
 
 
