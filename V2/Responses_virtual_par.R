@@ -41,12 +41,10 @@ x <- "Año_Mes" # Variable independiente
 y <- c("Lat") # Variables dependiente
 Data[,c(4:7)] <-round(Data[,c(4:7)],4) 
 
-
- 
 spp <- unique(Data$species)
-
-library(foreach)
-library(doParallel)
+secuencia <-  seq(0.00005, 0.001, 0.0001)
+for (i in secuencia ){
+  
 
 # Configurar el clúster de paralelización
 numCores <- detectCores() - 10  # Usar todos menos 1 núcleo
@@ -74,7 +72,7 @@ toc()
 # Detener el clúster
 stopCluster(cl)
 
-
+bonferroni <- 0.005/length(spp)
 
 Tabla_sig_mean <-
   tabla_ind %>%
@@ -89,9 +87,9 @@ Tabla_sig_mean <-
   mutate(
     Spatial =
       case_when(
-        p_Lat >= 0.00017~ "SC",
-        p_Lat < 0.00017 & Dif_pvalue_Lat <= 0.00017 & Trend_Lat > 0 ~ "SA",
-        p_Lat < 0.00017 & Dif_pvalue_Lat <= 0.00017 & Trend_Lat < 0 ~ "SD",
+        p_Lat >= bonferroni ~ "SC",
+        p_Lat < bonferroni & Dif_pvalue_Lat <= bonferroni & Trend_Lat > 0 ~ "SA",
+        p_Lat < bonferroni & Dif_pvalue_Lat <= bonferroni & Trend_Lat < 0 ~ "SD",
         TRUE ~ "SC"))  %>%
   # Une el numero de registros obtenidos del conjunto global de datos
   left_join(
@@ -102,10 +100,19 @@ Tabla_sig_mean <-
   separate(Spp,c("A", "Spatial_G", "B"), sep = "_", remove = FALSE) %>% 
   subset(select = -c(A,B))
 
+
+a <- table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
+
+SA_E <- a[1,2] + a[1,3]
+SC_E <- a[2,1] + a[2,3]
+SD_E <- a[3,1] + a[3,2]
+
+res_E <- cbind(SA_E, SC_E, SD_E)
+res_E <- res_E %>% mutate(muestra = i)
+}
+
+
 write_xlsx(Tabla_sig_mean, paste0(resultados_dir,"resultados_aleat_SA_SC_SD_", "0.02", ".xlsx"))
-
-
-table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
 
 
 Data <- readRDS(paste0(directorio,"muestreo_aleat_SA_SC_SD_percent_0.02.RDS")) 
