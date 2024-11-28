@@ -13,15 +13,14 @@ source("V2/Fun_v2.R")
 #SC	
 
 # Data ----
-directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V3/"
+directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V4/"
 resultados_dir <- paste0(directorio, "resultados/")
 if (!dir.exists(resultados_dir)) {
   dir.create(resultados_dir)
 }
 
-Data <- readRDS(paste0(directorio,"lista completa SA_SC_SD.RDS" )) 
-# "muestreo_aleat_SA_SC_SD_percent_5e-04.RDS" 
-# "muestreo_aleat_SA_SC_SD_percent_0.00025.RDS"  
+Data <- readRDS(paste0(directorio,"muestreo_aleat_SA_SC_SD_percent_0.02.RDS")) 
+# "muestreo_aleat_SA_SC_SD_percent_5e-04.RDS"   
 # "muestreo_aleat_SA_SC_SD_percent_0.001.RDS"   
 # "muestreo_aleat_SA_SC_SD_percent_0.0025.RDS"   
 # "muestreo_aleat_SA_SC_SD_percent_0.005.RDS"    
@@ -90,9 +89,9 @@ Tabla_sig_mean <-
   mutate(
     Spatial =
       case_when(
-        p_Lat >= 0.0002~ "SC",
-        Dif_pvalue_Lat <= 0.0002 & Trend_Lat > 0 ~ "SA",
-        Dif_pvalue_Lat <= 0.0002 & Trend_Lat < 0 ~ "SD",
+        p_Lat >= 0.00017~ "SC",
+        p_Lat < 0.00017 & Dif_pvalue_Lat <= 0.00017 & Trend_Lat > 0 ~ "SA",
+        p_Lat < 0.00017 & Dif_pvalue_Lat <= 0.00017 & Trend_Lat < 0 ~ "SD",
         TRUE ~ "SC"))  %>%
   # Une el numero de registros obtenidos del conjunto global de datos
   left_join(
