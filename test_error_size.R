@@ -1,5 +1,5 @@
 closeAllConnections()
-rm(list=(ls()[ls()!="v"]))
+rm(list=(ls()[ls()!="Data"]))
 gc(reset=TRUE)
 source("V2/Fun_v2.R")
 
@@ -14,7 +14,7 @@ source("V2/Fun_v2.R")
 
 # Data ----
 directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V4/"
-resultados_dir <- paste0(directorio, "resultados/")
+resultados_dir <- paste0(directorio, "resultados/V2/")
 if (!dir.exists(resultados_dir)) {
   dir.create(resultados_dir)
 }
@@ -34,21 +34,10 @@ x <- "Año_Mes" # Variable independiente
 y <- c("Lat") # Variables dependiente
 
 
-# Define unique species and sampling sequence
-spp <- unique(Data$species)
-
-# Bonferroni correction
-bonferroni <- 0.005 / length(spp)
 
 secuencia <- c(0.00005, 0.0001, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.02)
 
 
-
-# Crear una tabla vacía para los resultados finales
-library(dplyr)
-library(tidyr)
-library(foreach)
-library(doParallel)
 
 # Crear una tabla vacía para almacenar los resultados finales
 final_table <- data.frame(
@@ -62,7 +51,8 @@ final_table <- data.frame(
 for (i in seq_along(secuencia)) {
   # Realizar un muestreo de los datos
   sampled_data <- Data %>% slice_sample(prop = secuencia[i], replace = FALSE)
-  
+  spp <- unique(sampled_data$species)
+  bonferroni <- 0.005 / length(spp)
   # Verificar si hay datos después del muestreo
   if (nrow(sampled_data) == 0) {
     warning(paste("Muestreo vacío para secuencia:", secuencia[i]))
