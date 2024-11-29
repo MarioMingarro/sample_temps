@@ -36,7 +36,13 @@ y <- c("Lat") # Variables dependiente
 
 # Define unique species and sampling sequence
 spp <- unique(Data$species)
-secuencia <- seq(0.00005, 0.001, 0.0001)
+
+# Bonferroni correction
+bonferroni <- 0.005 / length(spp)
+
+secuencia <- c(0.00005, 0.0001, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.02)
+
+
 
 # Crear una tabla vacía para los resultados finales
 library(dplyr)
@@ -55,7 +61,7 @@ final_table <- data.frame(
 # Iterar sobre la secuencia de muestreos
 for (i in seq_along(secuencia)) {
   # Realizar un muestreo de los datos
-  sampled_data <- Data %>% sample_frac(secuencia[i])
+  sampled_data <- Data %>% slice_sample(prop = secuencia[i], replace = FALSE)
   
   # Verificar si hay datos después del muestreo
   if (nrow(sampled_data) == 0) {
@@ -64,7 +70,7 @@ for (i in seq_along(secuencia)) {
   }
   
   # Configurar clúster de paralelización
-  numCores <- detectCores() - 1
+  numCores <- detectCores() - 10
   cl <- makeCluster(numCores)
   registerDoParallel(cl)
   
@@ -74,7 +80,7 @@ for (i in seq_along(secuencia)) {
     .combine = rbind,
     .packages = c("tidyverse", "jtools")
   ) %dopar% {
-    resultado <- spp_trend(sampled_data, sp, y, n_min = 50)
+    resultado <- spp_trend(sampled_data, sp, y, n_min = 10)
     if (!is.null(resultado) && nrow(resultado) > 0) {
       resultado[, 4] <- round(resultado[, 4], 4)  # Redondear columna 4
     }
@@ -84,8 +90,7 @@ for (i in seq_along(secuencia)) {
   # Detener el clúster
   stopCluster(cl)
   
-  # Bonferroni correction
-  bonferroni <- 0.005 / length(spp)
+  
   
   # Procesar la tabla resultante
   if (!is.null(tabla_ind) && nrow(tabla_ind) > 0) {
@@ -112,12 +117,9 @@ for (i in seq_along(secuencia)) {
     a <- table(Tabla_sig_mean$Spatial_G, Tabla_sig_mean$Spatial)
     
     # Calcular los errores, manejando casos donde la tabla esté incompleta
-    SA_error <- ifelse("1" %in% rownames(a) & "2" %in% colnames(a), a[1, 2], 0) +
-      ifelse("1" %in% rownames(a) & "3" %in% colnames(a), a[1, 3], 0)
-    SC_error <- ifelse("2" %in% rownames(a) & "1" %in% colnames(a), a[2, 1], 0) +
-      ifelse("2" %in% rownames(a) & "3" %in% colnames(a), a[2, 3], 0)
-    SD_error <- ifelse("3" %in% rownames(a) & "1" %in% colnames(a), a[3, 1], 0) +
-      ifelse("3" %in% rownames(a) & "2" %in% colnames(a), a[3, 2], 0)
+    SA_error <-  a[1, 2] + a[1, 3]
+    SC_error <- a[2, 1] + a[2, 3]
+    SD_error <- a[3, 1] + a[3, 2]
     
     # Almacenar los resultados en la tabla final
     final_table <- rbind(final_table, data.frame(
@@ -126,6 +128,7 @@ for (i in seq_along(secuencia)) {
       SC_error = SC_error,
       SD_error = SD_error
     ))
+    write_xlsx(Tabla_sig_mean, paste0(resultados_dir,"resultados_aleat_SA_SC_SD_", secuencia[i], ".xlsx"))
   } else {
     warning(paste("No se generaron resultados para secuencia:", secuencia[i]))
   }
@@ -134,9 +137,28 @@ for (i in seq_along(secuencia)) {
 # Mostrar la tabla final
 print(final_table)
 
+final_table_long <- final_table %>%
+  pivot_longer(
+    cols = c(SA_error, SC_error, SD_error),
+    names_to = "Error_Type",
+    values_to = "Count"
+  )
+
+# Crear el gráfico con ggplot
+ggplot(final_table_long, aes(x = Records, y = Count, col = Error_Type)) +
+  geom_point() + 
+  geom_line()+
+  scale_fill_manual(
+    values = c("SA_error" = "red", "SC_error" = "blue", "SD_error" = "green"),
+    labels = c("SA", "SC", "SD")
+  ) +
+  labs(
+    title = "Distribución de Errores por Records",
+    x = "Records",
+    y = "Cantidad",
+    fill = "Tipo de Error"
+  ) +
+  theme_minimal()
 
 
 
-kkdvk <- sampled_data %>%
-  group_by(species) %>%
-  summarise(num_registros = n())
