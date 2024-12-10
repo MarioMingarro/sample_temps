@@ -5,7 +5,7 @@ source("V2/Fun_v2.R")
 
 # Data ----
 directorio <- "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V4/"
-resultados_dir <- paste0(directorio, "Results_sesgadas/")
+resultados_dir <- paste0(directorio, "resultados_sesgadas/")
 if (!dir.exists(resultados_dir)) {
   dir.create(resultados_dir)
 }
@@ -15,7 +15,7 @@ if (!dir.exists(resultados_dir)) {
 archivos <- list.files(path = "C:/A_TRABAJO/A_JORGE/SPP_VIRTUALES/V4/Ocurrencias_sesgadas", 
                        pattern = "^muestreo_lat_bias", 
                        full.names = TRUE)
-archivos <- archivos[7:12]
+archivos <- archivos[8:21]
 # Crear una tabla vacía para almacenar los resultados finales
 final_table <- data.frame(
   Records = character(),
@@ -145,7 +145,7 @@ ggplot(final_table_long, aes(x = Records, y = Count, col = Error_Type, group = E
     labels = c("SA", "SC", "SD")
   ) +
   labs(
-    title = "Distribución de Errores por Records",
+    title = "Distribución de Errores por Registros 1-2-4",
     x = "Records",
     y = "Cantidad",
     color = "Tipo de Error"
